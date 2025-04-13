@@ -175,7 +175,7 @@ impl Server {
                     .store(ServerState::Initializing as u8, Ordering::SeqCst);
 
                 // Create server capabilities
-                let mut tools_capabilities = self.get_capabilities();
+                let tools_capabilities = self.get_capabilities();
                 
                 // Create initialize result
                 let result = InitializeResult {
@@ -235,7 +235,7 @@ impl Server {
                         id,
                         json!({
                             "tools": tools,
-                            "nextCursor": null
+                            "nextCursor": ""
                         }),
                     ))
                     .await?;

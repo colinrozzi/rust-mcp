@@ -262,6 +262,42 @@ impl Client {
 
         Ok(())
     }
+    
+    /// Refresh the list of available prompts
+    pub async fn refresh_prompts(&self) -> Result<serde_json::Value> {
+        // Check if we're initialized
+        {
+            let state = self.state.read().await;
+            if *state != ClientState::Ready {
+                return Err(anyhow!("Client not initialized"));
+            }
+        }
+        
+        // Send prompts/list request
+        let id = self.next_request_id().await?;
+        let response = self
+            .send_request(methods::PROMPTS_LIST, None, id.to_string())
+            .await?;
+        
+        match response {
+            JsonRpcMessage::Response { result, error, .. } => {
+                if let Some(error) = error {
+                    return Err(anyhow!(
+                        "List prompts error: {} (code: {})",
+                        error.message,
+                        error.code
+                    ));
+                }
+                
+                if let Some(result) = result {
+                    return Ok(result);
+                }
+                
+                Err(anyhow!("Invalid list prompts response"))
+            }
+            _ => Err(anyhow!("Invalid response type")),
+        }
+    }
 
     /// Get the next request ID
     pub async fn next_request_id(&self) -> Result<i64> {
@@ -333,10 +369,29 @@ impl Client {
                     Ok(())
                 }
             }
-            JsonRpcMessage::Notification { method, .. } => {
+            JsonRpcMessage::Notification { method, params, .. } => {
                 // Handle notification
                 match method.as_str() {
-                    // Add handlers for specific notifications here
+                    // Handle prompt list changed notification
+                    methods::PROMPTS_LIST_CHANGED => {
+                        // Emit a debug message about the change
+                        tracing::debug!("Received notification: prompts list changed");
+                        
+                        // We could trigger a refresh of the prompts list here
+                        // but we'll skip it for now to avoid complexity with clones
+                        Ok(())
+                    },
+                    // Handle resource updated notification
+                    methods::RESOURCES_UPDATED => {
+                        // Extract the resource URI if available
+                        if let Some(params) = params {
+                            if let Some(uri) = params.get("uri").and_then(|u| u.as_str()) {
+                                tracing::debug!("Received notification: resource updated - URI: {}", uri);
+                            }
+                        }
+                        Ok(())
+                    },
+                    // Add other handlers for specific notifications here
                     _ => {
                         tracing::debug!("Unhandled notification: {}", method);
                         Ok(())

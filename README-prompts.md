@@ -1,6 +1,6 @@
 # MCP Prompts Feature
 
-This documentation describes the Prompts feature implementation in the Rust MCP project.
+This documentation describes the Prompts feature implementation in the Rust MCP (Model Context Protocol) project.
 
 ## Overview
 
@@ -16,14 +16,14 @@ The implementation consists of the following components:
 4. **Example Server**: Demonstrates prompt registration in `examples/prompt-server`
 5. **Example Client**: Shows how to use prompts from a client in `examples/prompt-client`
 
-## Features
+## Key Features
 
-The implementation supports:
-
-- Registering prompts with customizable arguments
-- Listing available prompts with pagination
-- Retrieving prompt content with argument substitution
-- Notifications when the available prompts change
+- **Arguments Validation**: Prompt arguments are validated for required fields and unexpected values
+- **Content Types Support**: Messages can contain text, images, or embedded resources
+- **Annotations**: Prompts can have metadata associated with them via annotations
+- **Pagination**: Large sets of prompts can be paginated for efficient retrieval
+- **Update Notifications**: Clients can be notified when the prompt list changes
+- **Completion Integration**: Argument values can be suggested through the completion API
 
 ## Usage
 
@@ -32,32 +32,44 @@ The implementation supports:
 To register a prompt on your MCP server:
 
 ```rust
+// Create a server builder
 let server = ServerBuilder::new("my-server", "1.0.0")
     .with_transport(StdioTransport::new())
+    // Register a prompt
     .with_prompt(
-        "my_prompt",                               // Name
-        Some("Description of my prompt"),         // Description
-        Some(vec![                                // Arguments
+        "code_review",                        // Name
+        Some("Reviews code for issues"),      // Description
+        Some(vec![                            // Arguments
             PromptArgument {
-                name: "arg1".to_string(),
-                description: Some("First argument".to_string()),
+                name: "code".to_string(),
+                description: Some("Code to review".to_string()),
                 required: Some(true),
             },
+            PromptArgument {
+                name: "language".to_string(),
+                description: Some("Programming language".to_string()),
+                required: Some(false),
+            },
         ]),
-        |args| {
-            // Generate prompt messages based on arguments
-            let arg1 = args.and_then(|a| a.get("arg1").cloned())
-                .unwrap_or_default();
+        |arguments| {
+            // Generate messages based on arguments
+            let code = if let Some(args) = &arguments {
+                args.get("code")
+                    .cloned()
+                    .unwrap_or_default()
+            } else {
+                "// No code provided".to_string()
+            };
             
-            // Return prompt messages
-            Ok(vec![
-                PromptMessage {
-                    role: "user".to_string(),
-                    content: PromptMessageContent::Text {
-                        text: format!("My prompt with {}", arg1),
-                    },
+            // Create the prompt message
+            let message = PromptMessage {
+                role: "user".to_string(),
+                content: PromptMessageContent::Text {
+                    text: format!("Please review this code:\n\n```\n{}\n```", code),
                 },
-            ])
+            };
+            
+            Ok(vec![message])
         }
     )
     .build()?;
@@ -69,27 +81,100 @@ To use prompts from a client:
 
 ```rust
 // List available prompts
+let id = client.next_request_id().await?;
 let response = client
-    .request(
+    .send_request(
         methods::PROMPTS_LIST,
         Some(serde_json::to_value(PromptsListParams { cursor: None })?),
+        id.to_string(),
     )
     .await?;
 
-// Use a prompt
+// Extract prompts from response
+let prompts_list: serde_json::Value = match response {
+    JsonRpcMessage::Response { result, .. } => {
+        if let Some(result) = result {
+            serde_json::from_value(result)?
+        } else {
+            return Err(anyhow!("Invalid response"));
+        }
+    }
+    _ => return Err(anyhow!("Invalid response type")),
+};
+
+// Use a specific prompt
+let name = "code_review";
 let mut args = HashMap::new();
-args.insert("arg1".to_string(), "value1".to_string());
+args.insert("code".to_string(), "fn main() { println!(\"Hello\"); }".to_string());
+args.insert("language".to_string(), "Rust".to_string());
 
 let params = PromptGetParams {
-    name: "my_prompt".to_string(),
+    name: name.to_string(),
     arguments: Some(args),
 };
 
+let id = client.next_request_id().await?;
 let response = client
-    .request(methods::PROMPTS_GET, Some(serde_json::to_value(params)?))
+    .send_request(methods::PROMPTS_GET, Some(serde_json::to_value(params)?), id.to_string())
     .await?;
 
-// Process the returned prompt messages
+// Process the prompt result
+// ...
+```
+
+## Advanced Features
+
+### Annotations
+
+Annotations allow attaching metadata to prompts:
+
+```rust
+// Add an annotation to a prompt
+prompt_manager.add_annotation(
+    "code_review", 
+    "version", 
+    serde_json::json!("1.0.0")
+).await?;
+
+// Retrieve an annotation
+let version = prompt_manager.get_annotation(
+    "code_review", 
+    "version"
+).await?;
+```
+
+### Embedded Resources
+
+Prompt messages can include embedded resources:
+
+```rust
+// Create a message with an embedded resource
+PromptMessage {
+    role: "user".to_string(),
+    content: PromptMessageContent::Resource {
+        resource: EmbeddedResource {
+            uri: "resource://example".to_string(),
+            mime_type: "text/plain".to_string(),
+            text: Some("Resource content".to_string()),
+            data: None,
+        }
+    },
+}
+```
+
+### Image Content
+
+Prompt messages can include images:
+
+```rust
+// Create a message with an image
+PromptMessage {
+    role: "user".to_string(),
+    content: PromptMessageContent::Image {
+        data: base64_encoded_image_data,
+        mime_type: "image/png".to_string(),
+    },
+}
 ```
 
 ## Running the Example

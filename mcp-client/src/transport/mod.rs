@@ -16,6 +16,9 @@ pub trait Transport: Send + Sync + 'static {
     
     /// Close the transport
     async fn close(&self) -> Result<()>;
+    
+    /// Clone the transport
+    fn box_clone(&self) -> Box<dyn Transport>;
 }
 
 pub use stdio::StdioTransport;

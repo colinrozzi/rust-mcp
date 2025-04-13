@@ -128,4 +128,20 @@ impl super::Transport for StdioTransport {
 
         Ok(())
     }
+    
+    fn box_clone(&self) -> Box<dyn super::Transport> {
+        Box::new(self.clone())
+    }
+}
+
+impl Clone for StdioTransport {
+    fn clone(&self) -> Self {
+        Self {
+            child_process: self.child_process.clone(),
+            tx: self.tx.clone(),
+            command: self.command.clone(),
+            args: self.args.clone(),
+            stdin: self.stdin.clone(),
+        }
+    }
 }

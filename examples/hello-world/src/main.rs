@@ -3,13 +3,24 @@ use mcp_protocol::types::tool::{ToolCallResult, ToolContent};
 use mcp_server::{ServerBuilder, transport::StdioTransport};
 use serde_json::json;
 use tracing::{info, Level};
+use std::fs::{File, OpenOptions};
 use tracing_subscriber::FmtSubscriber;
+use std::io;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    // Initialize logging
+    // Initialize logging to a file
+    
+    // Setup subscriber with file writer
     let subscriber = FmtSubscriber::builder()
         .with_max_level(Level::INFO)
+        .with_writer(move || -> Box<dyn io::Write> {
+            Box::new(io::BufWriter::new(OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open("hello-server.log")
+                .unwrap()))
+        })
         .finish();
     tracing::subscriber::set_global_default(subscriber)
         .expect("Failed to set default tracing subscriber");

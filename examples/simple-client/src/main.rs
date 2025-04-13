@@ -3,13 +3,24 @@ use anyhow::Result;
 use mcp_client::{ClientBuilder, transport::StdioTransport};
 use serde_json::json;
 use tracing::{info, Level};
+use std::fs::{File, OpenOptions};
 use tracing_subscriber::FmtSubscriber;
+use std::io;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    // Initialize logging
+    // Initialize logging to a file
+    
+    // Setup subscriber with file writer
     let subscriber = FmtSubscriber::builder()
         .with_max_level(Level::INFO)
+        .with_writer(move || -> Box<dyn io::Write> {
+            Box::new(io::BufWriter::new(OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open("simple-client.log")
+                .unwrap()))
+        })
         .finish();
     tracing::subscriber::set_global_default(subscriber)
         .expect("Failed to set default tracing subscriber");
@@ -17,7 +28,7 @@ async fn main() -> Result<()> {
     info!("Starting simple MCP client");
     
     // Path to the server executable
-    let server_path = "target/debug/hello-world";
+    let server_path = "../../target/debug/hello-world";
     
     // Create and connect to server
     let (transport, mut receiver) = StdioTransport::new(server_path, vec![]);
@@ -31,7 +42,9 @@ async fn main() -> Result<()> {
     tokio::spawn(async move {
         while let Some(message) = receiver.recv().await {
             if let Err(e) = client_for_handler.handle_message(message).await {
-                eprintln!("Error handling message: {}", e);
+                // Log errors to a separate writer to avoid stdout
+                let err_msg = format!("Error handling message: {}", e);
+                tracing::error!("{}", err_msg);
             }
         }
     });

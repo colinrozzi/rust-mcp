@@ -8,7 +8,7 @@ use tokio::sync::mpsc;
 
 use mcp_protocol::{
     constants::{error_codes, methods, PROTOCOL_VERSION},
-    messages::{InitializeParams, InitializeResult, JsonRpcMessage},
+    messages::{InitializeParams, InitializeResult, JsonRpcMessage, ServerCapabilities},
     types::{
         tool::{Tool, ToolCallParams, ToolCallResult},
         ServerInfo, ServerState,
@@ -175,13 +175,15 @@ impl Server {
                     .store(ServerState::Initializing as u8, Ordering::SeqCst);
 
                 // Create server capabilities
-                let mut capabilities = HashMap::new();
-                capabilities.insert("tools".to_string(), Some(self.get_capabilities()));
-
+                let mut tools_capabilities = self.get_capabilities();
+                
                 // Create initialize result
                 let result = InitializeResult {
                     protocol_version: PROTOCOL_VERSION.to_string(),
-                    capabilities: Default::default(),
+                    capabilities: ServerCapabilities {
+                        tools: Some(tools_capabilities),
+                        ..Default::default()
+                    },
                     server_info: self.get_server_info(),
                     instructions: None,
                 };

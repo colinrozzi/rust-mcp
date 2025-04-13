@@ -2,7 +2,8 @@
 use anyhow::Result;
 use async_trait::async_trait;
 use mcp_protocol::messages::JsonRpcMessage;
-use std::process::{Child, Command, Stdio};
+use std::process::Stdio;
+use tokio::process::{Child, Command};
 use std::sync::Arc;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::sync::{mpsc, Mutex};
@@ -13,6 +14,8 @@ pub struct StdioTransport {
     tx: mpsc::Sender<JsonRpcMessage>,
     command: String,
     args: Vec<String>,
+    // Add a shared stdin channel for writing
+    stdin: Arc<Mutex<Option<tokio::process::ChildStdin>>>,
 }
 
 impl StdioTransport {
@@ -25,6 +28,7 @@ impl StdioTransport {
             tx,
             command: command.to_string(),
             args,
+            stdin: Arc::new(Mutex::new(None)),
         };
 
         (transport, rx)
@@ -44,13 +48,21 @@ impl super::Transport for StdioTransport {
         let stdout = child.stdout.take().expect("Failed to get stdout");
         let stdin = child.stdin.take().expect("Failed to get stdin");
 
-        let mut guard = self.child_process.lock().await;
-        *guard = Some(child);
-        drop(guard);
+        // Store child process
+        {
+            let mut guard = self.child_process.lock().await;
+            *guard = Some(child);
+        }
 
-        let stdin = Arc::new(Mutex::new(stdin));
+        // Store stdin for writing messages
+        {
+            let mut stdin_guard = self.stdin.lock().await;
+            *stdin_guard = Some(stdin);
+        }
+
         let tx = self.tx.clone();
 
+        // Spawn a task to read from stdout
         tokio::spawn(async move {
             let mut reader = BufReader::new(stdout);
             let mut line = String::new();
@@ -75,19 +87,15 @@ impl super::Transport for StdioTransport {
     }
 
     async fn send(&self, message: JsonRpcMessage) -> Result<()> {
-        let guard = self.child_process.lock().await;
-        let child = guard
-            .as_ref()
+        // Get stdin from our stored mutex
+        let mut stdin_guard = self.stdin.lock().await;
+        let stdin = stdin_guard
+            .as_mut()
             .ok_or_else(|| anyhow::anyhow!("Child process not started"))?;
 
-        let stdin = child
-            .stdin
-            .as_ref()
-            .ok_or_else(|| anyhow::anyhow!("Failed to get stdin"))?;
-
         let serialized = serde_json::to_string(&message)?;
-        let mut stdin = tokio::process::ChildStdin::from_std(stdin.try_clone()?)?;
-
+        
+        // Now we can directly use AsyncWriteExt methods on stdin
         stdin.write_all(serialized.as_bytes()).await?;
         stdin.write_all(b"\n").await?;
         stdin.flush().await?;
@@ -96,19 +104,24 @@ impl super::Transport for StdioTransport {
     }
 
     async fn close(&self) -> Result<()> {
+        // First close stdin
+        {
+            let mut stdin_guard = self.stdin.lock().await;
+            *stdin_guard = None;
+        }
+        
+        // Then close the child process
         let mut guard = self.child_process.lock().await;
 
         if let Some(mut child) = guard.take() {
-            // Close stdin to signal EOF
-            drop(child.stdin.take());
-
             // Wait for a short time for the process to exit gracefully
-            match tokio::time::timeout(std::time::Duration::from_secs(1), child.wait()).await {
+            let wait_future = child.wait();
+            match tokio::time::timeout(std::time::Duration::from_secs(1), wait_future).await {
                 Ok(Ok(_)) => return Ok(()),
                 _ => {
                     // If it doesn't exit, kill it
-                    child.kill()?;
-                    child.wait()?;
+                    child.kill().await?;
+                    child.wait().await?;
                 }
             }
         }

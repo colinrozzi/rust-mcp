@@ -309,10 +309,10 @@ impl Client {
     /// Handle a received message
     pub async fn handle_message(&self, message: JsonRpcMessage) -> Result<()> {
         match message {
-            JsonRpcMessage::Response { id, .. } => {
+            JsonRpcMessage::Response { ref id, .. } => {
                 // Get id as string
                 let id = match id {
-                    serde_json::Value::String(s) => s,
+                    serde_json::Value::String(s) => s.clone(),
                     serde_json::Value::Number(n) => n.to_string(),
                     _ => return Err(anyhow!("Invalid response ID type")),
                 };
@@ -333,7 +333,7 @@ impl Client {
                     Ok(())
                 }
             }
-            JsonRpcMessage::Notification { method, params, .. } => {
+            JsonRpcMessage::Notification { method, .. } => {
                 // Handle notification
                 match method.as_str() {
                     // Add handlers for specific notifications here

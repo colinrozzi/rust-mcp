@@ -4,7 +4,7 @@ use serde_json::json;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::Arc;
-use tokio::sync::{mpsc, RwLock};
+use tokio::sync::mpsc;
 
 use mcp_protocol::{
     constants::{error_codes, methods, PROTOCOL_VERSION},

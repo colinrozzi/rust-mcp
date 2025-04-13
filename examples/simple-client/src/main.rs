@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use anyhow::Result;
 use mcp_client::{ClientBuilder, transport::StdioTransport};
 use serde_json::json;
@@ -19,17 +20,17 @@ async fn main() -> Result<()> {
     let server_path = "target/debug/hello-world";
     
     // Create and connect to server
-    let (transport, receiver) = StdioTransport::new(server_path, vec![]);
+    let (transport, mut receiver) = StdioTransport::new(server_path, vec![]);
     
-    let client = ClientBuilder::new("simple-client", "0.1.0")
+    let client = Arc::new(ClientBuilder::new("simple-client", "0.1.0")
         .with_transport(transport)
-        .build()?;
+        .build()?);
     
     // Start message handling
-    let client_clone = client.clone();
+    let client_for_handler = client.clone();
     tokio::spawn(async move {
-        while let Ok(message) = receiver.recv().await {
-            if let Err(e) = client_clone.handle_message(message).await {
+        while let Some(message) = receiver.recv().await {
+            if let Err(e) = client_for_handler.handle_message(message).await {
                 eprintln!("Error handling message: {}", e);
             }
         }

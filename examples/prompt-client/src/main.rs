@@ -30,7 +30,7 @@ async fn main() -> Result<()> {
     );
 
     // Create client using the builder
-    let mut client = ClientBuilder::new("prompt-client-example", "0.1.0")
+    let client = ClientBuilder::new("prompt-client-example", "0.1.0")
         .with_transport(transport)
         .build()?;
 

@@ -1,6 +1,6 @@
 use anyhow::Result;
 use mcp_client::{ClientBuilder, transport::StdioTransport};
-use mcp_protocol::types::sampling::{CreateMessageParams, CreateMessageResult, Message, MessageContent};
+use mcp_protocol::types::sampling::{CreateMessageResult, MessageContent};
 use tracing::{info, Level};
 use tracing_subscriber::fmt;
 
@@ -14,7 +14,7 @@ async fn main() -> Result<()> {
         .expect("Failed to set default subscriber");
 
     // Create client using the builder
-    let mut client = ClientBuilder::new("sampling-client-example", "0.1.0")
+    let client = ClientBuilder::new("sampling-client-example", "0.1.0")
         .with_sampling() // Enable sampling capability
         .with_transport(StdioTransport::new("cargo", vec!["run".to_string(), "--package".to_string(), "sampling-server".to_string()]).0)
         .build()?;

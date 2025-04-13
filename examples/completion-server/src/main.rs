@@ -7,7 +7,6 @@ use mcp_protocol::{
     }
 };
 use mcp_server::{ServerBuilder, transport::StdioTransport};
-use serde_json::json;
 use std::fs::OpenOptions;
 use std::io;
 use std::sync::Arc;

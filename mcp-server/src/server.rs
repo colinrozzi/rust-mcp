@@ -12,7 +12,6 @@ use mcp_protocol::{
     types::{
         tool::{Tool, ToolCallParams, ToolCallResult},
         resource::{Resource, ResourceContent, ResourcesListParams, ResourceReadParams, ResourceSubscribeParams},
-        completion::{CompleteRequest, CompleteResponse, CompletionResult},
         ServerInfo, ServerState,
     },
     version::{is_supported_version, version_mismatch_error},

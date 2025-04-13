@@ -6,8 +6,8 @@ A modular Rust implementation of the Model Context Protocol (MCP), which enables
 
 This implementation follows the MCP specification, which can be found at:
 
-- Local path: `/users/colinrozzi/work/mcp-servers/modelcontextprotocol/docs/specification`
-- Current implemented version: `/users/colinrozzi/work/mcp-servers/modelcontextprotocol/docs/specification/2024-11-05`
+- Local path: `~/work/mcp-servers/modelcontextprotocol/docs/specification`
+- Current implemented version: `~/work/mcp-servers/modelcontextprotocol/docs/specification/2024-11-05`
 
 > **Note**: This implementation is currently targeting the 2024-11-05 version of the specification. We plan to implement the newer 2025-03-26 specification in the future, but the inspector currently only supports the 2024 version. All code is designed with forward compatibility in mind.
 
@@ -144,9 +144,9 @@ cargo run --package simple-client
 
 ```toml
 [dependencies]
-mcp-protocol = { git = "https://github.com/your-username/rust-mcp" }
-mcp-client = { git = "https://github.com/your-username/rust-mcp" }
-mcp-server = { git = "https://github.com/your-username/rust-mcp" }
+mcp-protocol = { git = "https://github.com/colinrozzi/rust-mcp" }
+mcp-client = { git = "https://github.com/colinrozzi/rust-mcp" }
+mcp-server = { git = "https://github.com/colinrozzi/rust-mcp" }
 ```
 
 2. Build your MCP server or client using the provided builder patterns.

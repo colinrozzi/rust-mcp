@@ -7,6 +7,7 @@ pub mod prompts;
 mod completion;
 mod resource_extensions;
 mod server_prompts;
+pub mod sampling;
 
 pub use server::{Server, ServerBuilder};
 pub use transport::Transport;

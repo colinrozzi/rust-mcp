@@ -6,10 +6,11 @@ use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex, RwLock};
 
 use mcp_protocol::{
-    constants::{methods, PROTOCOL_VERSION},
-    messages::{InitializeParams, InitializeResult, JsonRpcMessage},
+    constants::{methods, error_codes, PROTOCOL_VERSION},
+    messages::{InitializeParams, InitializeResult, JsonRpcMessage, ClientCapabilities},
     types::{
         tool::{ToolCallParams, ToolCallResult, ToolsListResult},
+        sampling::{CreateMessageParams, CreateMessageResult},
         ClientInfo,
     },
 };
@@ -35,6 +36,7 @@ pub struct ClientBuilder {
     name: String,
     version: String,
     transport: Option<Box<dyn Transport>>,
+    sampling_enabled: bool,
 }
 
 impl ClientBuilder {
@@ -44,7 +46,14 @@ impl ClientBuilder {
             name: name.to_string(),
             version: version.to_string(),
             transport: None,
+            sampling_enabled: false,
         }
+    }
+    
+    /// Enable sampling capability
+    pub fn with_sampling(mut self) -> Self {
+        self.sampling_enabled = true;
+        self
     }
 
     /// Set the transport to use
@@ -58,28 +67,46 @@ impl ClientBuilder {
         let transport = self
             .transport
             .ok_or_else(|| anyhow!("Transport is required"))?;
+            
+        // Create capabilities
+        let capabilities = if self.sampling_enabled {
+            let mut caps = ClientCapabilities::default();
+            caps.sampling = Some(HashMap::new());
+            caps
+        } else {
+            ClientCapabilities::default()
+        };
 
         Ok(Client {
             name: self.name,
             version: self.version,
             transport,
+            sampling_enabled: self.sampling_enabled,
+            capabilities,
             state: Arc::new(RwLock::new(ClientState::Created)),
             next_id: Arc::new(Mutex::new(1)),
             pending_requests: Arc::new(RwLock::new(HashMap::new())),
             initialized_result: Arc::new(RwLock::new(None)),
+            sampling_callback: Arc::new(RwLock::new(None)),
         })
     }
 }
+
+/// Type for sampling callback function
+pub type SamplingCallback = Box<dyn Fn(CreateMessageParams) -> Result<CreateMessageResult> + Send + Sync>;
 
 /// MCP client
 pub struct Client {
     name: String,
     version: String,
     transport: Box<dyn Transport>,
+    sampling_enabled: bool,
+    capabilities: ClientCapabilities,
     state: Arc<RwLock<ClientState>>,
     next_id: Arc<Mutex<i64>>,
     pending_requests: Arc<RwLock<HashMap<String, PendingRequest>>>,
     initialized_result: Arc<RwLock<Option<InitializeResult>>>,
+    sampling_callback: Arc<RwLock<Option<SamplingCallback>>>,
 }
 
 impl Client {
@@ -105,7 +132,7 @@ impl Client {
         // Create initialize parameters
         let params = InitializeParams {
             protocol_version: PROTOCOL_VERSION.to_string(),
-            capabilities: Default::default(),
+            capabilities: self.capabilities.clone(),
             client_info: ClientInfo {
                 name: self.name.clone(),
                 version: self.version.clone(),
@@ -342,9 +369,123 @@ impl Client {
         }
     }
 
+    /// Register a sampling callback
+    pub async fn register_sampling_callback(&self, callback: SamplingCallback) -> Result<()> {
+        if !self.sampling_enabled {
+            return Err(anyhow!("Sampling is not enabled"));
+        }
+        
+        let mut sampling_callback = self.sampling_callback.write().await;
+        *sampling_callback = Some(callback);
+        
+        Ok(())
+    }
+    
+    /// Handle sampling createMessage request
+    async fn handle_sampling_create_message(&self, message: JsonRpcMessage) -> Result<()> {
+        match message {
+            JsonRpcMessage::Request { id, params, .. } => {
+                // Check if sampling is enabled
+                if !self.sampling_enabled {
+                    // Send error response
+                    self.transport
+                        .send(JsonRpcMessage::error(
+                            id,
+                            error_codes::SAMPLING_NOT_ENABLED,
+                            "Sampling is not enabled",
+                            None,
+                        ))
+                        .await?
+                    ;
+                    return Ok(());
+                }
+                
+                // Parse parameters
+                let params: CreateMessageParams = match params {
+                    Some(params) => match serde_json::from_value(params) {
+                        Ok(params) => params,
+                        Err(err) => {
+                            // Send error response
+                            self.transport
+                                .send(JsonRpcMessage::error(
+                                    id,
+                                    error_codes::INVALID_PARAMS,
+                                    &format!("Invalid sampling parameters: {}", err),
+                                    None,
+                                ))
+                                .await?
+                            ;
+                            return Ok(());
+                        }
+                    },
+                    None => {
+                        // Send error response
+                        self.transport
+                            .send(JsonRpcMessage::error(
+                                id,
+                                error_codes::INVALID_PARAMS,
+                                "Missing sampling parameters",
+                                None,
+                            ))
+                            .await?
+                        ;
+                        return Ok(());
+                    }
+                };
+                
+                // Get the callback
+                let callback = {
+                    let callback = self.sampling_callback.read().await;
+                    match &*callback {
+                        Some(cb) => cb.clone(),
+                        None => {
+                            // Send error response
+                            self.transport
+                                .send(JsonRpcMessage::error(
+                                    id,
+                                    error_codes::SAMPLING_NO_CALLBACK,
+                                    "No sampling callback registered",
+                                    None,
+                                ))
+                                .await?
+                            ;
+                            return Ok(());
+                        }
+                    }
+                };
+                
+                // Call the callback
+                match callback(params) {
+                    Ok(result) => {
+                        // Send response
+                        self.transport
+                            .send(JsonRpcMessage::response(id, json!(result)))
+                            .await?
+                        ;
+                    }
+                    Err(err) => {
+                        // Send error response
+                        self.transport
+                            .send(JsonRpcMessage::error(
+                                id,
+                                error_codes::SAMPLING_ERROR,
+                                &format!("Sampling error: {}", err),
+                                None,
+                            ))
+                            .await?
+                        ;
+                    }
+                }
+                
+                Ok(())
+            }
+            _ => Err(anyhow!("Expected request message for sampling/createMessage")),
+        }
+    }
+    
     /// Handle a received message
     pub async fn handle_message(&self, message: JsonRpcMessage) -> Result<()> {
-        match message {
+        match message.clone() {
             JsonRpcMessage::Response { ref id, .. } => {
                 // Get id as string
                 let id = match id {
@@ -398,10 +539,16 @@ impl Client {
                     }
                 }
             }
-            JsonRpcMessage::Request { .. } => {
-                // Implement request handling if needed
-                tracing::debug!("Unhandled server request");
-                Ok(())
+            JsonRpcMessage::Request { method, .. } => {
+                match method.as_str() {
+                    methods::SAMPLING_CREATE_MESSAGE => {
+                        self.handle_sampling_create_message(message).await
+                    },
+                    _ => {
+                        tracing::debug!("Unhandled server request: {}", method);
+                        Ok(())
+                    }
+                }
             }
         }
     }

@@ -39,6 +39,9 @@ pub mod methods {
     pub const RESOURCES_UPDATED: &str = "notifications/resources/updated";
     pub const RESOURCES_LIST_CHANGED: &str = "notifications/resources/list_changed";
     
+    // Sampling methods
+    pub const SAMPLING_CREATE_MESSAGE: &str = "sampling/createMessage";
+    
     // Logging notifications
     pub const LOG: &str = "notifications/log";
 }
@@ -55,4 +58,7 @@ pub mod error_codes {
     // MCP specific error codes
     pub const RESOURCE_NOT_FOUND: i32 = -32002;
     pub const SERVER_NOT_INITIALIZED: i32 = -32003;
+    pub const SAMPLING_NOT_ENABLED: i32 = -32004;
+    pub const SAMPLING_NO_CALLBACK: i32 = -32005;
+    pub const SAMPLING_ERROR: i32 = -32006;
 }

@@ -3,7 +3,6 @@ use mcp_protocol::types::prompt::{PromptArgument, PromptMessage, PromptMessageCo
 use mcp_server::{ServerBuilder, transport::StdioTransport};
 use tracing::{info, debug, Level};
 use std::fs::OpenOptions;
-use std::collections::HashMap;
 use tracing_subscriber::fmt;
 use std::io;
 

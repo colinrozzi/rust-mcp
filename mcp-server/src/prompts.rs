@@ -2,8 +2,8 @@
 use anyhow::{anyhow, Result};
 use mcp_protocol::types::prompt::{Prompt, PromptGetResult, PromptMessage};
 use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
-use tokio::sync::mpsc::{self, Receiver, Sender};
+use std::sync::{RwLock};
+use tokio::sync::broadcast;
 
 /// Handler type for generating prompt messages
 pub type PromptHandler = Box<dyn Fn(Option<HashMap<String, String>>) -> Result<Vec<PromptMessage>> + Send + Sync>;
@@ -17,28 +17,24 @@ pub struct PromptManager {
     handlers: RwLock<HashMap<String, PromptHandler>>,
     
     /// Sender for update notifications
-    update_tx: Sender<()>,
-    
-    /// Receiver for update notifications (cloned for subscribers)
-    update_rx: RwLock<Receiver<()>>,
+    update_tx: broadcast::Sender<()>,
 }
 
 impl PromptManager {
     /// Create a new prompt manager
-    pub fn new() -> Arc<Self> {
-        let (tx, rx) = mpsc::channel(100);
+    pub fn new() -> Self {
+        let (update_tx, _) = broadcast::channel(100);
         
-        Arc::new(Self {
+        Self {
             prompts: RwLock::new(HashMap::new()),
             handlers: RwLock::new(HashMap::new()),
-            update_tx: tx,
-            update_rx: RwLock::new(rx),
-        })
+            update_tx,
+        }
     }
     
     /// Register a prompt with the manager
     pub fn register_prompt(
-        self: &Arc<Self>,
+        &self,
         prompt: Prompt,
         handler: impl Fn(Option<HashMap<String, String>>) -> Result<Vec<PromptMessage>> + Send + Sync + 'static,
     ) {
@@ -57,7 +53,7 @@ impl PromptManager {
         }
         
         // Notify of update
-        let _ = self.update_tx.try_send(());
+        let _ = self.update_tx.send(());
     }
     
     /// List all registered prompts with optional pagination
@@ -104,29 +100,31 @@ impl PromptManager {
             prompts.get(name).cloned().ok_or_else(|| anyhow!("Prompt not found: {}", name))?
         };
         
-        // Get handler
-        let handler = {
+        // Get handler and execute it
+        let messages = {
             let handlers = self.handlers.read().unwrap();
-            handlers.get(name).cloned().ok_or_else(|| anyhow!("Handler not found for prompt: {}", name))?
-        };
-        
-        // Validate required arguments
-        if let Some(prompt_args) = &prompt.arguments {
-            for arg in prompt_args {
-                if arg.required.unwrap_or(false) {
-                    if let Some(args) = &arguments {
-                        if !args.contains_key(&arg.name) {
-                            return Err(anyhow!("Missing required argument: {}", arg.name));
+            if let Some(handler) = handlers.get(name) {
+                // Validate required arguments
+                if let Some(prompt_args) = &prompt.arguments {
+                    for arg in prompt_args {
+                        if arg.required.unwrap_or(false) {
+                            if let Some(args) = &arguments {
+                                if !args.contains_key(&arg.name) {
+                                    return Err(anyhow!("Missing required argument: {}", arg.name));
+                                }
+                            } else {
+                                return Err(anyhow!("Missing required argument: {}", arg.name));
+                            }
                         }
-                    } else {
-                        return Err(anyhow!("Missing required argument: {}", arg.name));
                     }
                 }
+                
+                // Execute handler
+                handler(arguments.clone())?                
+            } else {
+                return Err(anyhow!("Handler not found for prompt: {}", name));
             }
-        }
-        
-        // Generate messages using handler
-        let messages = handler(arguments)?;
+        };
         
         // Construct result
         let result = PromptGetResult {
@@ -138,21 +136,7 @@ impl PromptManager {
     }
     
     /// Subscribe to prompt list updates
-    pub fn subscribe_to_updates(&self) -> Receiver<()> {
-        let (tx, rx) = mpsc::channel(100);
-        
-        // Clone the sender to use in the task
-        let update_tx = tx.clone();
-        
-        // Create a task to forward updates
-        tokio::spawn(async move {
-            loop {
-                // Forward update notifications
-                let _ = update_tx.send(()).await;
-                tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-            }
-        });
-        
-        rx
+    pub fn subscribe_to_updates(&self) -> broadcast::Receiver<()> {
+        self.update_tx.subscribe()
     }
 }

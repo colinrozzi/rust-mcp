@@ -1,11 +1,11 @@
 use anyhow::Result;
-use mcp_client::{transport::StdioTransport, Client};
+use mcp_client::{ClientBuilder, transport::StdioTransport};
 use mcp_protocol::{
-    constants::{methods, PROTOCOL_VERSION},
+    constants::methods,
     types::{ClientInfo, prompt::{PromptGetParams, PromptsListParams}},
 };
 use std::collections::HashMap;
-use tracing::{debug, info, Level};
+use tracing::{info, Level};
 use tracing_subscriber::fmt;
 
 #[tokio::main]
@@ -24,10 +24,15 @@ async fn main() -> Result<()> {
     };
 
     // Create transport
-    let transport = StdioTransport::new();
+    let (transport, _rx) = StdioTransport::new(
+        "cargo", 
+        vec!["run".to_string(), "--package".to_string(), "prompt-server".to_string()]
+    );
 
-    // Create client
-    let mut client = Client::new(transport, client_info, PROTOCOL_VERSION.to_string())?;
+    // Create client using the builder
+    let mut client = ClientBuilder::new("prompt-client-example", "0.1.0")
+        .with_transport(transport)
+        .build()?;
 
     // Connect to server
     info!("Connecting to server...");
@@ -36,14 +41,31 @@ async fn main() -> Result<()> {
 
     // List available prompts
     info!("Listing available prompts...");
+    let id = client.next_request_id().await?;
     let response = client
-        .request(
+        .send_request(
             methods::PROMPTS_LIST,
             Some(serde_json::to_value(PromptsListParams { cursor: None })?),
+            id.to_string(),
         )
         .await?;
     
-    let prompts_list: serde_json::Value = serde_json::from_value(response)?;
+    let prompts_list: serde_json::Value = match response {
+        mcp_protocol::messages::JsonRpcMessage::Response { result, .. } => {
+            if let Some(result) = result {
+                serde_json::from_value(result)?
+            } else {
+                serde_json::Value::Null
+            }
+        },
+        _ => serde_json::Value::Null,
+    };
+    
+    if prompts_list.is_null() {
+        info!("No prompts available");
+        return Ok(());
+    }
+    
     info!("Available prompts: {}", serde_json::to_string_pretty(&prompts_list)?);
     
     // Get prompts array from the response
@@ -74,11 +96,22 @@ fn factorial(n: u64) -> u64 {
         };
         
         // Get prompt content
+        let id = client.next_request_id().await?;
         let response = client
-            .request(methods::PROMPTS_GET, Some(serde_json::to_value(params)?))
+            .send_request(methods::PROMPTS_GET, Some(serde_json::to_value(params)?), id.to_string())
             .await?;
         
-        let prompt_content: serde_json::Value = serde_json::from_value(response)?;
+        let prompt_content: serde_json::Value = match response {
+            mcp_protocol::messages::JsonRpcMessage::Response { result, .. } => {
+                if let Some(result) = result {
+                    serde_json::from_value(result)?
+                } else {
+                    serde_json::Value::Null
+                }
+            },
+            _ => serde_json::Value::Null,
+        };
+        
         info!("Code review prompt content: {}", serde_json::to_string_pretty(&prompt_content)?);
     }
     
@@ -101,11 +134,22 @@ fn factorial(n: u64) -> u64 {
         };
         
         // Get prompt content
+        let id = client.next_request_id().await?;
         let response = client
-            .request(methods::PROMPTS_GET, Some(serde_json::to_value(params)?))
+            .send_request(methods::PROMPTS_GET, Some(serde_json::to_value(params)?), id.to_string())
             .await?;
         
-        let prompt_content: serde_json::Value = serde_json::from_value(response)?;
+        let prompt_content: serde_json::Value = match response {
+            mcp_protocol::messages::JsonRpcMessage::Response { result, .. } => {
+                if let Some(result) = result {
+                    serde_json::from_value(result)?
+                } else {
+                    serde_json::Value::Null
+                }
+            },
+            _ => serde_json::Value::Null,
+        };
+        
         info!("Translation prompt content: {}", serde_json::to_string_pretty(&prompt_content)?);
     }
     

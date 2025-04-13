@@ -825,6 +825,11 @@ impl Server {
         &self.resource_manager
     }
     
+    /// Get a reference to the prompt manager
+    pub fn prompt_manager(&self) -> &Arc<PromptManager> {
+        &self.prompt_manager
+    }
+    
     /// Get a reference to the transport
     pub(crate) fn transport(&self) -> &Box<dyn Transport> {
         &self.transport

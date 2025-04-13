@@ -264,7 +264,7 @@ impl Client {
     }
 
     /// Get the next request ID
-    async fn next_request_id(&self) -> Result<i64> {
+    pub async fn next_request_id(&self) -> Result<i64> {
         let mut id = self.next_id.lock().await;
         let current = *id;
         *id += 1;

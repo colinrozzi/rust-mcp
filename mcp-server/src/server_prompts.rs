@@ -18,9 +18,9 @@ impl Server {
         match message {
             JsonRpcMessage::Request { id, params, .. } => {
                 // Check if server is ready
-                if self.state.load(Ordering::SeqCst) != ServerState::Ready as u8 {
+                if self.state().load(Ordering::SeqCst) != ServerState::Ready as u8 {
                     // Send error response
-                    self.transport
+                    self.transport()
                         .send(JsonRpcMessage::error(
                             id,
                             error_codes::SERVER_NOT_INITIALIZED,
@@ -37,7 +37,7 @@ impl Server {
                         Ok(params) => Some(params),
                         Err(err) => {
                             // Send error response
-                            self.transport
+                            self.transport()
                                 .send(JsonRpcMessage::error(
                                     id,
                                     error_codes::INVALID_PARAMS,
@@ -55,10 +55,10 @@ impl Server {
                 let cursor = params.and_then(|p| p.cursor);
                 
                 // Get prompts from manager with pagination
-                let (prompts, next_cursor) = self.prompt_manager.list_prompts(cursor).await;
+                let (prompts, next_cursor) = self.prompt_manager().list_prompts(cursor).await;
 
                 // Send response
-                self.transport
+                self.transport()
                     .send(JsonRpcMessage::response(
                         id,
                         json!({
@@ -79,9 +79,9 @@ impl Server {
         match message {
             JsonRpcMessage::Request { id, params, .. } => {
                 // Check if server is ready
-                if self.state.load(Ordering::SeqCst) != ServerState::Ready as u8 {
+                if self.state().load(Ordering::SeqCst) != ServerState::Ready as u8 {
                     // Send error response
-                    self.transport
+                    self.transport()
                         .send(JsonRpcMessage::error(
                             id,
                             error_codes::SERVER_NOT_INITIALIZED,
@@ -98,7 +98,7 @@ impl Server {
                         Ok(params) => params,
                         Err(err) => {
                             // Send error response
-                            self.transport
+                            self.transport()
                                 .send(JsonRpcMessage::error(
                                     id,
                                     error_codes::INVALID_PARAMS,
@@ -111,7 +111,7 @@ impl Server {
                     },
                     None => {
                         // Send error response
-                        self.transport
+                        self.transport()
                             .send(JsonRpcMessage::error(
                                 id,
                                 error_codes::INVALID_PARAMS,
@@ -124,10 +124,10 @@ impl Server {
                 };
 
                 // Get prompt content
-                match self.prompt_manager.get_prompt(&params.name, params.arguments).await {
+                match self.prompt_manager().get_prompt(&params.name, params.arguments).await {
                     Ok(result) => {
                         // Send response
-                        self.transport
+                        self.transport()
                             .send(JsonRpcMessage::response(
                                 id,
                                 json!(result),
@@ -136,7 +136,7 @@ impl Server {
                     }
                     Err(err) => {
                         // Send error response
-                        self.transport
+                        self.transport()
                             .send(JsonRpcMessage::error(
                                 id,
                                 error_codes::INVALID_PARAMS,

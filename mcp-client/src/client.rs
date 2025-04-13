@@ -272,7 +272,7 @@ impl Client {
     }
 
     /// Send a request and wait for a response
-    async fn send_request(
+    pub async fn send_request(
         &self,
         method: &str,
         params: Option<serde_json::Value>,

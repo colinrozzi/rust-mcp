@@ -119,6 +119,54 @@ impl ServerBuilder {
 
         self
     }
+    
+    /// Register a resource template (creates a resource manager if not already set)
+    pub fn with_template(
+        mut self,
+        uri_template: &str,
+        name: &str,
+        description: Option<&str>,
+        mime_type: Option<&str>,
+        expander: impl Fn(String, HashMap<String, String>) -> Result<String> + Send + Sync + 'static,
+    ) -> Self {
+        // Create resource manager if not already set
+        if self.resource_manager.is_none() {
+            self.resource_manager = Some(Arc::new(ResourceManager::new()));
+        }
+
+        // Create template
+        let template = mcp_protocol::types::resource::ResourceTemplate {
+            uri_template: uri_template.to_string(),
+            name: name.to_string(),
+            description: description.map(|s| s.to_string()),
+            mime_type: mime_type.map(|s| s.to_string()),
+            annotations: None,
+        };
+
+        // Register template
+        let resource_manager = self.resource_manager.as_ref().unwrap();
+        resource_manager.register_template(template, expander);
+
+        self
+    }
+    
+    /// Register a template parameter completion provider
+    pub fn with_template_completion(
+        mut self,
+        template_uri: &str,
+        provider: impl Fn(String, String, Option<String>) -> Result<Vec<mcp_protocol::types::resource::CompletionItem>> + Send + Sync + 'static,
+    ) -> Self {
+        // Create resource manager if not already set
+        if self.resource_manager.is_none() {
+            self.resource_manager = Some(Arc::new(ResourceManager::new()));
+        }
+
+        // Register completion provider
+        let resource_manager = self.resource_manager.as_ref().unwrap();
+        resource_manager.register_completion_provider(template_uri, provider);
+
+        self
+    }
 
     /// Build the server
     pub fn build(self) -> Result<Server> {
@@ -401,7 +449,7 @@ impl Server {
                 }
 
                 // Parse parameters (optional)
-                let _params: Option<ResourcesListParams> = match params {
+                let params: Option<ResourcesListParams> = match params {
                     Some(params) => match serde_json::from_value(params) {
                         Ok(params) => Some(params),
                         Err(err) => {
@@ -419,9 +467,12 @@ impl Server {
                     },
                     None => None,
                 };
-
-                // Get resources from manager
-                let resources = self.resource_manager.list_resources().await;
+                
+                // Get cursor from parameters
+                let cursor = params.and_then(|p| p.cursor);
+                
+                // Get resources from manager with pagination
+                let (resources, next_cursor) = self.resource_manager.list_resources(cursor).await;
 
                 // Send response
                 self.transport
@@ -429,7 +480,7 @@ impl Server {
                         id,
                         json!({
                             "resources": resources,
-                            "nextCursor": ""
+                            "nextCursor": next_cursor.unwrap_or_default()
                         }),
                     ))
                     .await?;

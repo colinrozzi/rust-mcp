@@ -95,3 +95,92 @@ pub struct ResourceUpdatedParams {
     /// URI of the updated resource
     pub uri: String,
 }
+
+/// Resource template that can be parameterized
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ResourceTemplate {
+    /// URI template that can be expanded with parameters
+    #[serde(rename = "uriTemplate")]
+    pub uri_template: String,
+    
+    /// Human-readable name of the template
+    pub name: String,
+    
+    /// Optional description of the template
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    
+    /// Optional MIME type of resources generated from this template
+    #[serde(rename = "mimeType")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mime_type: Option<String>,
+    
+    /// Optional custom annotations
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub annotations: Option<HashMap<String, serde_json::Value>>,
+}
+
+/// Parameters for listing resource templates
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ResourceTemplatesListParams {
+    /// Optional cursor for pagination
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cursor: Option<String>,
+}
+
+/// Result of listing resource templates
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ResourceTemplatesListResult {
+    /// List of available resource templates
+    #[serde(rename = "resourceTemplates")]
+    pub resource_templates: Vec<ResourceTemplate>,
+    
+    /// Optional cursor for the next page of results
+    #[serde(rename = "nextCursor")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub next_cursor: Option<String>,
+}
+
+/// Parameters for template parameter completion
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ResourceTemplateCompletionParams {
+    /// URI template to complete
+    #[serde(rename = "uriTemplate")]
+    pub uri_template: String,
+    
+    /// Parameter name to complete
+    pub parameter: String,
+    
+    /// Current value of the parameter (for contextual completion)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub value: Option<String>,
+}
+
+/// Result of template parameter completion
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ResourceTemplateCompletionResult {
+    /// List of completion suggestions
+    pub items: Vec<CompletionItem>,
+}
+
+/// A single completion suggestion
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CompletionItem {
+    /// The completion label to display
+    pub label: String,
+    
+    /// Optional description
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    
+    /// Value to insert if selected
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub insert_text: Option<String>,
+}
+
+/// Parameters for unsubscribing from a resource
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ResourceUnsubscribeParams {
+    /// URI of the resource to unsubscribe from
+    pub uri: String,
+}

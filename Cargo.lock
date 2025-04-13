@@ -504,6 +504,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "template-client"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "mcp-client",
+ "mcp-protocol",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "template-server"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "mcp-protocol",
+ "mcp-server",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "thiserror"
 version = "1.0.69"
 source = "registry+https://github.com/rust-lang/crates.io-index"

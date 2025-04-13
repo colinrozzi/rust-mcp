@@ -11,6 +11,7 @@ use mcp_protocol::{
     types::{
         tool::{ToolCallParams, ToolCallResult, ToolsListResult},
         sampling::{CreateMessageParams, CreateMessageResult},
+        completion::{CompleteRequest, CompleteResponse},
         ClientInfo,
     },
 };
@@ -216,6 +217,80 @@ impl Client {
                 }
 
                 Err(anyhow!("Invalid list tools response"))
+            }
+            _ => Err(anyhow!("Invalid response type")),
+        }
+    }
+    
+    /// List available resource templates
+    pub async fn list_resource_templates(&self) -> Result<mcp_protocol::types::resource::ResourceTemplatesListResult> {
+        // Check if we're initialized
+        {
+            let state = self.state.read().await;
+            if *state != ClientState::Ready {
+                return Err(anyhow!("Client not initialized"));
+            }
+        }
+
+        // Send resources/templates/list request
+        let id = self.next_request_id().await?;
+        let response = self
+            .send_request(methods::RESOURCES_TEMPLATES_LIST, None, id.to_string())
+            .await?;
+
+        match response {
+            JsonRpcMessage::Response { result, error, .. } => {
+                if let Some(error) = error {
+                    return Err(anyhow!(
+                        "List resource templates error: {} (code: {})",
+                        error.message,
+                        error.code
+                    ));
+                }
+
+                if let Some(result) = result {
+                    let result: mcp_protocol::types::resource::ResourceTemplatesListResult = serde_json::from_value(result)?;
+                    return Ok(result);
+                }
+
+                Err(anyhow!("Invalid resource templates list response"))
+            }
+            _ => Err(anyhow!("Invalid response type")),
+        }
+    }
+    
+    /// Get completion suggestions for a resource or prompt parameter
+    pub async fn complete(&self, request: CompleteRequest) -> Result<CompleteResponse> {
+        // Check if we're initialized
+        {
+            let state = self.state.read().await;
+            if *state != ClientState::Ready {
+                return Err(anyhow!("Client not initialized"));
+            }
+        }
+
+        // Send completion/complete request
+        let id = self.next_request_id().await?;
+        let response = self
+            .send_request("completion/complete", Some(json!(request)), id.to_string())
+            .await?;
+
+        match response {
+            JsonRpcMessage::Response { result, error, .. } => {
+                if let Some(error) = error {
+                    return Err(anyhow!(
+                        "Completion error: {} (code: {})",
+                        error.message,
+                        error.code
+                    ));
+                }
+
+                if let Some(result) = result {
+                    let result: CompleteResponse = serde_json::from_value(result)?;
+                    return Ok(result);
+                }
+
+                Err(anyhow!("Invalid completion response"))
             }
             _ => Err(anyhow!("Invalid response type")),
         }

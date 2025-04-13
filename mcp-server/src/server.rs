@@ -12,6 +12,7 @@ use mcp_protocol::{
     types::{
         tool::{Tool, ToolCallParams, ToolCallResult},
         resource::{Resource, ResourceContent, ResourcesListParams, ResourceReadParams, ResourceSubscribeParams},
+        completion::{CompleteRequest, CompleteResponse, CompletionResult},
         ServerInfo, ServerState,
     },
     version::{is_supported_version, version_mismatch_error},
@@ -173,6 +174,25 @@ impl ServerBuilder {
         // Register completion provider
         let resource_manager = self.resource_manager.as_ref().unwrap();
         resource_manager.register_completion_provider(template_uri, provider);
+
+        self
+    }
+    
+    /// Register a prompt parameter completion provider
+    pub fn with_prompt_completion(
+        mut self,
+        prompt_name: &str,
+        param_name: &str,
+        provider: impl Fn(String, Option<String>) -> Result<Vec<String>> + Send + Sync + 'static,
+    ) -> Self {
+        // Create prompt manager if not already set
+        if self.prompt_manager.is_none() {
+            self.prompt_manager = Some(Arc::new(PromptManager::new()));
+        }
+
+        // Register completion provider
+        let prompt_manager = self.prompt_manager.as_ref().unwrap();
+        prompt_manager.register_completion_provider(prompt_name, param_name, provider);
 
         self
     }

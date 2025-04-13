@@ -12,6 +12,8 @@ members = [
     "examples/prompt-client",
     "examples/sampling-server",
     "examples/sampling-client",
+    "examples/completion-server",
+    "examples/completion-client",
 ]
 resolver = "2"
 

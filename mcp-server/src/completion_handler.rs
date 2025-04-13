@@ -1,13 +1,11 @@
-// mcp-server/src/completion.rs
+// mcp-server/src/completion_handler.rs
 use anyhow::{anyhow, Result};
-use serde_json::json;
 use mcp_protocol::{
     constants::error_codes,
     messages::JsonRpcMessage,
-    types::completion::{
-        CompletionCompleteParams, CompletionInfo, CompletionReference
-    },
+    types::completion::{CompleteRequest, CompleteResponse, CompletionReference, CompletionResult},
 };
+use serde_json::json;
 
 use crate::server::Server;
 
@@ -17,7 +15,7 @@ impl Server {
         match message {
             JsonRpcMessage::Request { id, params, .. } => {
                 // Parse parameters
-                let params: CompletionCompleteParams = match params {
+                let params: CompleteRequest = match params {
                     Some(params) => match serde_json::from_value(params) {
                         Ok(params) => params,
                         Err(err) => {
@@ -51,35 +49,42 @@ impl Server {
                 match &params.r#ref {
                     CompletionReference::Resource { uri } => {
                         // This is for resource template completion
-                        // Extract parameter name from URI template 
+                        // Extract parameter name from URI template
                         // This is a simple implementation - in reality you'd need more robust parsing
-                        if let Some(param_name) = extract_parameter_from_uri(uri, &params.argument.name) {
-                            match self.resource_manager().get_completions(
-                                uri,
-                                &param_name,
-                                params.argument.value.clone(),
-                            ).await {
+                        if let Some(param_name) =
+                            extract_parameter_from_uri(uri, &params.argument.name)
+                        {
+                            match self
+                                .resource_manager()
+                                .get_completions(
+                                    uri,
+                                    &param_name,
+                                    Some(params.argument.value.clone()),
+                                )
+                                .await
+                            {
                                 Ok(items) => {
                                     // Convert CompletionItem array to string array for the standard API
-                                    let values = items.iter()
+                                    let values = items
+                                        .iter()
                                         .map(|item| item.label.clone())
                                         .collect::<Vec<String>>();
-                                    
-                                    // Create completion info
-                                    let completion_info = CompletionInfo {
+
+                                    // Create completion result
+                                    let completion_result = CompletionResult {
                                         values,
-                                        total: Some(items.len() as u32),
+                                        total: Some(items.len()),
                                         has_more: false,
                                     };
-                                    
+
+                                    // Create response
+                                    let response = CompleteResponse {
+                                        completion: completion_result,
+                                    };
+
                                     // Send response
                                     self.transport()
-                                        .send(JsonRpcMessage::response(
-                                            id,
-                                            json!({
-                                                "completion": completion_info
-                                            }),
-                                        ))
+                                        .send(JsonRpcMessage::response(id, json!(response)))
                                         .await?;
                                 }
                                 Err(err) => {
@@ -96,32 +101,66 @@ impl Server {
                             }
                         } else {
                             // Parameter not found in URI template
+                            // Create empty completion result
+                            let completion_result = CompletionResult {
+                                values: vec![],
+                                total: Some(0),
+                                has_more: false,
+                            };
+
+                            // Create response
+                            let response = CompleteResponse {
+                                completion: completion_result,
+                            };
+
                             self.transport()
-                                .send(JsonRpcMessage::response(
-                                    id,
-                                    json!({
-                                        "completion": {
-                                            "values": [],
-                                            "hasMore": false
-                                        }
-                                    }),
-                                ))
+                                .send(JsonRpcMessage::response(id, json!(response)))
                                 .await?;
                         }
                     }
-                    CompletionReference::Prompt { name: _ } => {
-                        // For now, return empty completion for prompts
-                        // In a real implementation, you'd have a prompt registry
+                    CompletionReference::Prompt { name } => {
+                        // Check if we have a completion provider for this prompt
+                        let prompt_manager = self.prompt_manager();
+                        if let Ok(completions) = prompt_manager
+                            .get_completions(
+                                name,
+                                &params.argument.name,
+                                Some(params.argument.value.clone()),
+                            )
+                            .await
+                        {
+                            // Create completion result
+                            let completion_result = CompletionResult {
+                                values: completions,
+                                total: None,
+                                has_more: false,
+                            };
+
+                            // Create response
+                            let response = CompleteResponse {
+                                completion: completion_result,
+                            };
+
+                            self.transport()
+                                .send(JsonRpcMessage::response(id, json!(response)))
+                                .await?;
+                            return Ok(());
+                        }
+
+                        // Prompt not found or parameter not found, return empty result
+                        let completion_result = CompletionResult {
+                            values: vec![],
+                            total: Some(0),
+                            has_more: false,
+                        };
+
+                        // Create response
+                        let response = CompleteResponse {
+                            completion: completion_result,
+                        };
+
                         self.transport()
-                            .send(JsonRpcMessage::response(
-                                id,
-                                json!({
-                                    "completion": {
-                                        "values": [],
-                                        "hasMore": false
-                                    }
-                                }),
-                            ))
+                            .send(JsonRpcMessage::response(id, json!(response)))
                             .await?;
                     }
                 }

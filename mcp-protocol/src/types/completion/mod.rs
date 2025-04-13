@@ -26,11 +26,33 @@ pub struct CompletionArgument {
     pub name: String,
     
     /// Current value of the argument
+    pub value: String,
+}
+
+/// Request for completion suggestions
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CompleteRequest {
+    pub r#ref: CompletionReference,
+    pub argument: CompletionArgument,
+}
+
+/// Completion results
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CompletionResult {
+    pub values: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub value: Option<String>,
+    pub total: Option<usize>,
+    pub has_more: bool,
+}
+
+/// Response for completion request
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CompleteResponse {
+    pub completion: CompletionResult,
 }
 
 /// Parameters for the completion/complete request
+/// Maintained for backward compatibility
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompletionCompleteParams {
     /// Reference to what is being completed
@@ -41,6 +63,7 @@ pub struct CompletionCompleteParams {
 }
 
 /// Completion result
+/// Maintained for backward compatibility
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompletionCompleteResult {
     /// Completion information
@@ -48,6 +71,7 @@ pub struct CompletionCompleteResult {
 }
 
 /// Completion information
+/// Maintained for backward compatibility
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompletionInfo {
     /// List of completion values, sorted by relevance
@@ -72,9 +96,9 @@ pub struct CompletionItem {
     
     /// Optional description
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
+    pub detail: Option<String>,
     
-    /// Value to insert if selected
+    /// Additional documentation
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub insert_text: Option<String>,
+    pub documentation: Option<String>,
 }

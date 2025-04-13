@@ -8,6 +8,9 @@ use tokio::sync::broadcast;
 /// Handler type for generating prompt messages
 pub type PromptHandler = Box<dyn Fn(Option<HashMap<String, String>>) -> Result<Vec<PromptMessage>> + Send + Sync>;
 
+/// Handler type for generating parameter completions
+pub type CompletionHandler = Box<dyn Fn(String, Option<String>) -> Result<Vec<String>> + Send + Sync>;
+
 /// Manages prompts for the MCP server
 pub struct PromptManager {
     /// Map of prompt name to prompt definition
@@ -15,6 +18,9 @@ pub struct PromptManager {
     
     /// Map of prompt name to prompt handler
     handlers: RwLock<HashMap<String, PromptHandler>>,
+    
+    /// Map of prompt name to parameter completion handlers
+    completion_handlers: RwLock<HashMap<String, HashMap<String, CompletionHandler>>>,
     
     /// Sender for update notifications
     update_tx: broadcast::Sender<()>,
@@ -28,6 +34,7 @@ impl PromptManager {
         Self {
             prompts: RwLock::new(HashMap::new()),
             handlers: RwLock::new(HashMap::new()),
+            completion_handlers: RwLock::new(HashMap::new()),
             update_tx,
         }
     }
@@ -54,6 +61,46 @@ impl PromptManager {
         
         // Notify of update
         let _ = self.update_tx.send(());
+    }
+    
+    /// Register a completion provider for a prompt parameter
+    pub fn register_completion_provider(
+        &self,
+        prompt_name: &str,
+        param_name: &str,
+        handler: impl Fn(String, Option<String>) -> Result<Vec<String>> + Send + Sync + 'static,
+    ) {
+        let mut completion_handlers = self.completion_handlers.write().unwrap();
+        
+        // Get or create the map for this prompt
+        let prompt_completions = completion_handlers
+            .entry(prompt_name.to_string())
+            .or_insert_with(HashMap::new);
+            
+        // Register the handler for this parameter
+        prompt_completions.insert(param_name.to_string(), Box::new(handler));
+    }
+    
+    /// Get completions for a prompt parameter
+    pub async fn get_completions(
+        &self,
+        prompt_name: &str,
+        param_name: &str,
+        value: Option<String>,
+    ) -> Result<Vec<String>> {
+        let completion_handlers = self.completion_handlers.read().unwrap();
+        
+        // Check if we have any completion handlers for this prompt
+        if let Some(prompt_completions) = completion_handlers.get(prompt_name) {
+            // Check if we have a handler for this parameter
+            if let Some(handler) = prompt_completions.get(param_name) {
+                // Call the handler
+                return handler(param_name.to_string(), value);
+            }
+        }
+        
+        // If we don't have a handler, return empty results
+        Ok(Vec::new())
     }
     
     /// List all registered prompts with optional pagination

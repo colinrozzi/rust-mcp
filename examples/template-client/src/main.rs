@@ -98,7 +98,7 @@ async fn main() -> Result<()> {
         },
         argument: mcp_protocol::types::completion::CompletionArgument {
             name: "database".to_string(),
-            value: None,
+            value: "".to_string(),
         },
     };
 

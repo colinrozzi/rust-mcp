@@ -91,18 +91,18 @@ async fn main() -> Result<()> {
                         let items = vec![
                             CompletionItem {
                                 label: "customers".to_string(),
-                                description: Some("Customer database".to_string()),
-                                insert_text: Some("customers".to_string()),
+                                detail: Some("Customer database".to_string()),
+                                documentation: None,
                             },
                             CompletionItem {
                                 label: "products".to_string(),
-                                description: Some("Product database".to_string()),
-                                insert_text: Some("products".to_string()),
+                                detail: Some("Product database".to_string()),
+                                documentation: None,
                             },
                             CompletionItem {
                                 label: "orders".to_string(),
-                                description: Some("Order database".to_string()),
-                                insert_text: Some("orders".to_string()),
+                                detail: Some("Order database".to_string()),
+                                documentation: None,
                             },
                         ];
                         Ok(items)
@@ -112,13 +112,13 @@ async fn main() -> Result<()> {
                         let items = vec![
                             CompletionItem {
                                 label: "users".to_string(),
-                                description: Some("Users table".to_string()),
-                                insert_text: Some("users".to_string()),
+                                detail: Some("Users table".to_string()),
+                                documentation: None,
                             },
                             CompletionItem {
                                 label: "accounts".to_string(),
-                                description: Some("Accounts table".to_string()),
-                                insert_text: Some("accounts".to_string()),
+                                detail: Some("Accounts table".to_string()),
+                                documentation: None,
                             },
                         ];
                         Ok(items)
@@ -128,13 +128,13 @@ async fn main() -> Result<()> {
                         let items = vec![
                             CompletionItem {
                                 label: "1001".to_string(),
-                                description: Some("User ID 1001".to_string()),
-                                insert_text: Some("1001".to_string()),
+                                detail: Some("User ID 1001".to_string()),
+                                documentation: None,
                             },
                             CompletionItem {
                                 label: "1002".to_string(),
-                                description: Some("User ID 1002".to_string()),
-                                insert_text: Some("1002".to_string()),
+                                detail: Some("User ID 1002".to_string()),
+                                documentation: None,
                             },
                         ];
                         Ok(items)

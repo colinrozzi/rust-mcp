@@ -8,6 +8,8 @@ members = [
     "examples/resource-server",
     "examples/template-server",
     "examples/template-client",
+    "examples/prompt-server",
+    "examples/prompt-client",
 ]
 
 [workspace.dependencies]

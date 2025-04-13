@@ -1,0 +1,14 @@
+[package]
+name = "prompt-server"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+mcp-protocol = { path = "../../mcp-protocol" }
+mcp-server = { path = "../../mcp-server" }
+mcp-client = { path = "../../mcp-client" }
+tokio = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+serde_json = { workspace = true }

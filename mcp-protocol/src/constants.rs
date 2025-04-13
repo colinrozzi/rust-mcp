@@ -25,6 +25,13 @@ pub mod methods {
     // Resource template methods
     pub const RESOURCES_TEMPLATES_LIST: &str = "resources/templates/list";
     
+    // Prompt methods
+    pub const PROMPTS_LIST: &str = "prompts/list";
+    pub const PROMPTS_GET: &str = "prompts/get";
+    
+    // Prompt notifications
+    pub const PROMPTS_LIST_CHANGED: &str = "notifications/prompts/list_changed";
+    
     // Completion methods
     pub const COMPLETION_COMPLETE: &str = "completion/complete";
     

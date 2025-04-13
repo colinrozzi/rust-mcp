@@ -5,6 +5,7 @@ members = [
     "mcp-server",
     "examples/hello-world",
     "examples/simple-client",
+    "examples/resource-server",
 ]
 
 [workspace.dependencies]

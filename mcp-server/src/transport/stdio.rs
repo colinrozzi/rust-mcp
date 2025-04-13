@@ -7,6 +7,7 @@ use tokio::sync::mpsc;
 use tracing::debug;
 
 /// Transport implementation that uses stdio to communicate with the client
+#[derive(Clone)]
 pub struct StdioTransport;
 
 impl StdioTransport {
@@ -59,5 +60,9 @@ impl super::Transport for StdioTransport {
     async fn close(&self) -> Result<()> {
         // No need to do anything special for stdio
         Ok(())
+    }
+    
+    fn box_clone(&self) -> Box<dyn super::Transport> {
+        Box::new(self.clone())
     }
 }

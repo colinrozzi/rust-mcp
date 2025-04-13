@@ -373,6 +373,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "resource-server"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "mcp-protocol",
+ "mcp-server",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "rustc-demangle"
 version = "0.1.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"

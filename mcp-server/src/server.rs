@@ -154,7 +154,7 @@ impl ServerBuilder {
     pub fn with_template_completion(
         mut self,
         template_uri: &str,
-        provider: impl Fn(String, String, Option<String>) -> Result<Vec<mcp_protocol::types::resource::CompletionItem>> + Send + Sync + 'static,
+        provider: impl Fn(String, String, Option<String>) -> Result<Vec<mcp_protocol::types::completion::CompletionItem>> + Send + Sync + 'static,
     ) -> Self {
         // Create resource manager if not already set
         if self.resource_manager.is_none() {
@@ -669,6 +669,9 @@ impl Server {
                     methods::RESOURCES_LIST => self.handle_resources_list(message).await?,
                     methods::RESOURCES_READ => self.handle_resources_read(message).await?,
                     methods::RESOURCES_SUBSCRIBE => self.handle_resources_subscribe(message).await?,
+                    methods::RESOURCES_UNSUBSCRIBE => self.handle_resources_unsubscribe(message).await?,
+                    methods::RESOURCES_TEMPLATES_LIST => self.handle_resources_templates_list(message).await?,
+                    methods::COMPLETION_COMPLETE => self.handle_completion_complete(message).await?,
                     _ => {
                         if let JsonRpcMessage::Request { id, .. } = message {
                             // Method not found
@@ -750,5 +753,15 @@ impl Server {
     /// Get a reference to the resource manager
     pub fn resource_manager(&self) -> &Arc<ResourceManager> {
         &self.resource_manager
+    }
+    
+    /// Get a reference to the transport
+    pub(crate) fn transport(&self) -> &Box<dyn Transport> {
+        &self.transport
+    }
+    
+    /// Get the server state
+    pub(crate) fn state(&self) -> &Arc<AtomicU8> {
+        &self.state
     }
 }

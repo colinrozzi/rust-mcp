@@ -1,6 +1,7 @@
 use anyhow::Result;
 use mcp_protocol::types::{
-    resource::{ResourceContent, CompletionItem},
+    resource::ResourceContent,
+    completion::CompletionItem,
     tool::{ToolCallResult, ToolContent},
 };
 use mcp_server::{ServerBuilder, transport::StdioTransport};

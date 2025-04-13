@@ -1,7 +1,7 @@
 // mcp-protocol/src/constants.rs
 
 /// The current protocol version
-pub const PROTOCOL_VERSION: &str = "2025-03-26";
+pub const PROTOCOL_VERSION: &str = "2024-11-05";
 
 /// JSON-RPC method names
 pub mod methods {
@@ -24,7 +24,9 @@ pub mod methods {
     
     // Resource template methods
     pub const RESOURCES_TEMPLATES_LIST: &str = "resources/templates/list";
-    pub const RESOURCES_TEMPLATE_COMPLETION: &str = "resources/templates/completion";
+    
+    // Completion methods
+    pub const COMPLETION_COMPLETE: &str = "completion/complete";
     
     // Resource notifications
     pub const RESOURCES_UPDATED: &str = "notifications/resources/updated";

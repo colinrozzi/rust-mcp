@@ -4,9 +4,9 @@ use std::sync::Arc;
 use anyhow::{anyhow, Result};
 use tokio::sync::{RwLock, broadcast};
 use mcp_protocol::types::resource::{
-    Resource, ResourceContent, ResourceTemplate, 
-    CompletionItem
+    Resource, ResourceContent, ResourceTemplate
 };
+use mcp_protocol::types::completion::CompletionItem;
 
 const DEFAULT_PAGE_SIZE: usize = 50;
 

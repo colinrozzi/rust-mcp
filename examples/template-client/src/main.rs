@@ -2,7 +2,7 @@ use anyhow::Result;
 use std::sync::Arc;
 use mcp_client::{ClientBuilder, transport::StdioTransport};
 use mcp_protocol::types::{
-    resource::{ResourceTemplateCompletionParams, ResourceTemplatesListParams},
+    resource::ResourceTemplatesListParams,
     tool::ToolContent,
 };
 use serde_json::json;
@@ -90,14 +90,18 @@ async fn main() -> Result<()> {
     
     // Get completions for a template parameter
     info!("Requesting completions for database parameter");
-    let completion_params = ResourceTemplateCompletionParams {
-        uri_template: "db:///{database}/{table}/{id}".to_string(),
-        parameter: "database".to_string(),
-        value: None,
+    let completion_params = mcp_protocol::types::completion::CompletionCompleteParams {
+        r#ref: mcp_protocol::types::completion::CompletionReference::Resource {
+            uri: "db:///{database}/{table}/{id}".to_string(),
+        },
+        argument: mcp_protocol::types::completion::CompletionArgument {
+            name: "database".to_string(),
+            value: None,
+        },
     };
     
     let completion_result = client.send_request(
-        "resources/templates/completion",
+        "completion/complete",
         Some(json!(completion_params)),
         "get_completions".to_string()
     ).await?;

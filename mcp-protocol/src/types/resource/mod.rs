@@ -141,7 +141,8 @@ pub struct ResourceTemplatesListResult {
     pub next_cursor: Option<String>,
 }
 
-/// Parameters for template parameter completion
+/// Parameters for template parameter completion - DEPRECATED in favor of the general completion API
+/// (This is kept for backward compatibility with existing code)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ResourceTemplateCompletionParams {
     /// URI template to complete
@@ -156,26 +157,12 @@ pub struct ResourceTemplateCompletionParams {
     pub value: Option<String>,
 }
 
-/// Result of template parameter completion
+/// Result of template parameter completion - DEPRECATED in favor of the general completion API
+/// (This is kept for backward compatibility with existing code)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ResourceTemplateCompletionResult {
     /// List of completion suggestions
-    pub items: Vec<CompletionItem>,
-}
-
-/// A single completion suggestion
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CompletionItem {
-    /// The completion label to display
-    pub label: String,
-    
-    /// Optional description
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
-    
-    /// Value to insert if selected
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub insert_text: Option<String>,
+    pub items: Vec<super::completion::CompletionItem>,
 }
 
 /// Parameters for unsubscribing from a resource

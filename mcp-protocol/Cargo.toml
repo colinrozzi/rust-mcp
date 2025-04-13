@@ -1,0 +1,10 @@
+[package]
+name = "mcp-protocol"
+version = "0.1.0"
+edition = "2021"
+description = "Protocol definitions for the Model Context Protocol (MCP)"
+license = "MIT"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }

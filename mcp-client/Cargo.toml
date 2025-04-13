@@ -1,0 +1,16 @@
+[package]
+name = "mcp-client"
+version = "0.1.0"
+edition = "2021"
+description = "Client implementation for the Model Context Protocol (MCP)"
+license = "MIT"
+
+[dependencies]
+mcp-protocol = { path = "../mcp-protocol" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+anyhow = { workspace = true }
+async-trait = { workspace = true }
+futures = { workspace = true }
+tracing = { workspace = true }

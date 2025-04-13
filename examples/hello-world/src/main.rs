@@ -3,16 +3,16 @@ use mcp_protocol::types::tool::{ToolCallResult, ToolContent};
 use mcp_server::{ServerBuilder, transport::StdioTransport};
 use serde_json::json;
 use tracing::{info, Level};
-use std::fs::{File, OpenOptions};
-use tracing_subscriber::FmtSubscriber;
+use std::fs::OpenOptions;
+use tracing_subscriber::fmt;
 use std::io;
 
 #[tokio::main]
 async fn main() -> Result<()> {
     // Initialize logging to a file
     
-    // Setup subscriber with file writer
-    let subscriber = FmtSubscriber::builder()
+    // Setup subscriber with file writer - no ANSI colors for file
+    let subscriber = fmt::Subscriber::builder()
         .with_max_level(Level::INFO)
         .with_writer(move || -> Box<dyn io::Write> {
             Box::new(io::BufWriter::new(OpenOptions::new()
@@ -21,6 +21,7 @@ async fn main() -> Result<()> {
                 .open("hello-server.log")
                 .unwrap()))
         })
+        .with_ansi(true) // Enable ANSI color codes
         .finish();
     tracing::subscriber::set_global_default(subscriber)
         .expect("Failed to set default tracing subscriber");

@@ -2,6 +2,15 @@
 
 A modular Rust implementation of the Model Context Protocol (MCP), which enables seamless integration between LLM applications and external data sources and tools.
 
+## Protocol Specification
+
+This implementation follows the MCP specification, which can be found at:
+
+- Local path: `/users/colinrozzi/work/mcp-servers/modelcontextprotocol/docs/specification`
+- Latest version: `/users/colinrozzi/work/mcp-servers/modelcontextprotocol/docs/specification/2025-03-26`
+
+The specification defines the wire format, message types, capabilities, and features that make up the Model Context Protocol. This library implements the core functionality as described in the specification.
+
 ## Project Structure
 
 This repository is organized as a Cargo workspace with three main crates:

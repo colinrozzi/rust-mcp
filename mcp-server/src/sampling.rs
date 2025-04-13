@@ -1,6 +1,6 @@
 // mcp-server/src/sampling.rs
 use anyhow::{anyhow, Result};
-use mcp_protocol::types::sampling::{CreateMessageParams, CreateMessageResult, Message, MessageContent};
+use mcp_protocol::types::sampling::{CreateMessageParams, CreateMessageResult};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -28,16 +28,15 @@ impl SamplingManager {
     
     /// Create a message using the registered callback
     pub async fn create_message(&self, params: &CreateMessageParams) -> Result<CreateMessageResult> {
-        let callback = {
-            let cb = self.create_message_callback.lock().await;
-            match &*cb {
-                Some(cb) => cb.clone(),
-                None => return Err(anyhow!("No create message callback registered")),
-            }
-        };
+        // Get the callback and invoke it with the lock
+        let cb = self.create_message_callback.lock().await;
+        if cb.is_none() {
+            return Err(anyhow!("No create message callback registered"));
+        }
         
-        // Call the callback
-        callback(params)
+        // We can't clone the Box<dyn Fn...>, so we'll invoke it while we have the lock
+        let callback_ref = cb.as_ref().unwrap();
+        callback_ref(params)
     }
 }
 

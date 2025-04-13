@@ -434,28 +434,44 @@ impl Client {
                 };
                 
                 // Get the callback
-                let callback = {
+                let callback_result = {
                     let callback = self.sampling_callback.read().await;
-                    match &*callback {
-                        Some(cb) => cb.clone(),
-                        None => {
-                            // Send error response
-                            self.transport
-                                .send(JsonRpcMessage::error(
-                                    id,
-                                    error_codes::SAMPLING_NO_CALLBACK,
-                                    "No sampling callback registered",
-                                    None,
-                                ))
-                                .await?
-                            ;
-                            return Ok(());
-                        }
+                    if callback.is_some() {
+                        Ok(())
+                    } else {
+                        Err(anyhow!("No sampling callback registered"))
                     }
                 };
                 
+                // Check if we have a callback
+                if let Err(_) = callback_result {
+                    // Send error response
+                    self.transport
+                        .send(JsonRpcMessage::error(
+                            id,
+                            error_codes::SAMPLING_NO_CALLBACK,
+                            "No sampling callback registered",
+                            None,
+                        ))
+                        .await?
+                    ;
+                    return Ok(());
+                }
+                
                 // Call the callback
-                match callback(params) {
+                // Get a lock on the callback to invoke it
+                let result = {
+                    let callback_guard = self.sampling_callback.read().await;
+                    // We know this is Some because we checked earlier
+                    if let Some(callback) = &*callback_guard {
+                        callback(params.clone())
+                    } else {
+                        // This shouldn't happen, but just in case
+                        Err(anyhow!("No sampling callback registered"))
+                    }
+                };
+                
+                match result {
                     Ok(result) => {
                         // Send response
                         self.transport

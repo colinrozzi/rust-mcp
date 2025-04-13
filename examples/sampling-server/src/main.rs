@@ -1,7 +1,6 @@
 use anyhow::Result;
 use mcp_protocol::{
     types::{
-        sampling::{CreateMessageParams, Message, MessageContent},
         tool::{ToolCallResult, ToolContent}
     }
 };
@@ -9,8 +8,6 @@ use mcp_server::{ServerBuilder, transport::StdioTransport};
 use serde_json::json;
 use std::fs::OpenOptions;
 use std::io;
-use tokio::time::sleep;
-use tokio::time::Duration;
 use tracing::{info, debug, Level};
 use tracing_subscriber::fmt;
 
@@ -61,14 +58,17 @@ async fn main() -> Result<()> {
                     .and_then(|v| v.as_str())
                     .unwrap_or("Tell me about yourself");
                 
-                // Create content for the tool response
+                // Since we can't directly access the transport from here,
+                // we'll just return a simple response
                 let content = vec![
                     ToolContent::Text {
-                        text: format!("Asking LLM: \"{}\"", question)
+                        text: format!("Question: {}", question),
+                    },
+                    ToolContent::Text {
+                        text: "This tool would normally use sampling to get an answer from an LLM.".to_string(),
                     }
                 ];
                 
-                // Simple response for now, will be replaced with sampling in handle_message
                 let result = ToolCallResult {
                     content,
                     is_error: Some(false)
@@ -78,56 +78,6 @@ async fn main() -> Result<()> {
             }
         )
         .build()?;
-    
-    // Get a handle to the transport for sampling requests
-    let transport = server.transport().clone();
-    let state = server.state().clone();
-    
-    // Spawn a task to simulate sampling requests
-    tokio::spawn(async move {
-        // Wait for server to be initialized
-        while state.load(std::sync::atomic::Ordering::SeqCst) != mcp_protocol::types::ServerState::Ready as u8 {
-            sleep(Duration::from_millis(100)).await;
-        }
-        
-        debug!("Server is ready, can now send sampling requests");
-        
-        // Wait a bit to ensure client is also ready
-        sleep(Duration::from_secs(2)).await;
-        
-        // Create a sampling request
-        let params = CreateMessageParams {
-            messages: vec![
-                Message {
-                    role: "user".to_string(),
-                    content: MessageContent::Text {
-                        text: "Tell me about the Model Context Protocol".to_string()
-                    }
-                }
-            ],
-            model_preferences: None,
-            system_prompt: Some("You are a helpful assistant".to_string()),
-            max_tokens: Some(100),
-            temperature: Some(0.7),
-            top_p: None,
-            context: None,
-        };
-        
-        // Use the JSON-RPC protocol to send a sampling request
-        let request = mcp_protocol::messages::JsonRpcMessage::request(
-            json!("sampling-1"),
-            mcp_protocol::constants::methods::SAMPLING_CREATE_MESSAGE,
-            Some(serde_json::to_value(params).unwrap())
-        );
-        
-        // Send the request to the client
-        debug!("Sending sampling request");
-        if let Err(e) = transport.send(request).await {
-            debug!("Error sending sampling request: {:?}", e);
-        }
-        
-        debug!("Sampling request sent");
-    });
     
     info!("Server initialized. Waiting for client connection...");
     

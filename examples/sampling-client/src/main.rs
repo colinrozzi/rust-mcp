@@ -16,7 +16,7 @@ async fn main() -> Result<()> {
     // Create client using the builder
     let mut client = ClientBuilder::new("sampling-client-example", "0.1.0")
         .with_sampling() // Enable sampling capability
-        .with_transport(StdioTransport::new())
+        .with_transport(StdioTransport::new("cargo", vec!["run".to_string(), "--package".to_string(), "sampling-server".to_string()]).0)
         .build()?;
 
     // Register sampling callback

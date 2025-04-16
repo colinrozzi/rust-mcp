@@ -5,21 +5,25 @@ use std::collections::HashMap;
 use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::Arc;
 use tokio::sync::mpsc;
+use tracing::{debug, error};
 
 use mcp_protocol::{
     constants::{error_codes, methods, PROTOCOL_VERSION},
     messages::{InitializeParams, InitializeResult, JsonRpcMessage, ServerCapabilities},
     types::{
+        resource::{
+            Resource, ResourceContent, ResourceReadParams, ResourceSubscribeParams,
+            ResourcesListParams,
+        },
         tool::{Tool, ToolCallParams, ToolCallResult},
-        resource::{Resource, ResourceContent, ResourcesListParams, ResourceReadParams, ResourceSubscribeParams},
         ServerInfo, ServerState,
     },
     version::{is_supported_version, version_mismatch_error},
 };
 
-use crate::tools::ToolManager;
-use crate::resources::ResourceManager;
 use crate::prompts::PromptManager;
+use crate::resources::ResourceManager;
+use crate::tools::ToolManager;
 use crate::transport::Transport;
 
 /// MCP server builder
@@ -35,6 +39,7 @@ pub struct ServerBuilder {
 impl ServerBuilder {
     /// Create a new server builder
     pub fn new(name: &str, version: &str) -> Self {
+        debug!("Creating new server builder");
         Self {
             name: name.to_string(),
             version: version.to_string(),
@@ -62,7 +67,7 @@ impl ServerBuilder {
         self.resource_manager = Some(resource_manager);
         self
     }
-    
+
     /// Set the prompt manager
     pub fn with_prompt_manager(mut self, prompt_manager: Arc<PromptManager>) -> Self {
         self.prompt_manager = Some(prompt_manager);
@@ -77,6 +82,7 @@ impl ServerBuilder {
         input_schema: serde_json::Value,
         handler: impl Fn(serde_json::Value) -> Result<ToolCallResult> + Send + Sync + 'static,
     ) -> Self {
+        debug!("Registering tool: {}", name);
         // Create tool manager if not already set
         if self.tool_manager.is_none() {
             self.tool_manager = Some(Arc::new(ToolManager::new()));
@@ -128,7 +134,7 @@ impl ServerBuilder {
 
         self
     }
-    
+
     /// Register a resource template (creates a resource manager if not already set)
     pub fn with_template(
         mut self,
@@ -158,12 +164,19 @@ impl ServerBuilder {
 
         self
     }
-    
+
     /// Register a template parameter completion provider
     pub fn with_template_completion(
         mut self,
         template_uri: &str,
-        provider: impl Fn(String, String, Option<String>) -> Result<Vec<mcp_protocol::types::completion::CompletionItem>> + Send + Sync + 'static,
+        provider: impl Fn(
+                String,
+                String,
+                Option<String>,
+            ) -> Result<Vec<mcp_protocol::types::completion::CompletionItem>>
+            + Send
+            + Sync
+            + 'static,
     ) -> Self {
         // Create resource manager if not already set
         if self.resource_manager.is_none() {
@@ -176,7 +189,7 @@ impl ServerBuilder {
 
         self
     }
-    
+
     /// Register a prompt parameter completion provider
     pub fn with_prompt_completion(
         mut self,
@@ -195,14 +208,19 @@ impl ServerBuilder {
 
         self
     }
-    
+
     /// Register a prompt (creates a prompt manager if not already set)
     pub fn with_prompt(
         mut self,
         name: &str,
         description: Option<&str>,
         arguments: Option<Vec<mcp_protocol::types::prompt::PromptArgument>>,
-        handler: impl Fn(Option<HashMap<String, String>>) -> Result<Vec<mcp_protocol::types::prompt::PromptMessage>> + Send + Sync + 'static,
+        handler: impl Fn(
+                Option<HashMap<String, String>>,
+            ) -> Result<Vec<mcp_protocol::types::prompt::PromptMessage>>
+            + Send
+            + Sync
+            + 'static,
     ) -> Self {
         // Create prompt manager if not already set
         if self.prompt_manager.is_none() {
@@ -274,7 +292,7 @@ impl Server {
         capabilities.insert("subscribe".to_string(), true);
         capabilities
     }
-    
+
     /// Get the prompt capabilities
     fn get_prompt_capabilities(&self) -> HashMap<String, bool> {
         let mut capabilities = HashMap::new();
@@ -347,7 +365,7 @@ impl Server {
                 let tools_capabilities = self.get_tool_capabilities();
                 let resources_capabilities = self.get_resource_capabilities();
                 let prompts_capabilities = self.get_prompt_capabilities();
-                
+
                 // Create initialize result
                 let result = InitializeResult {
                     protocol_version: PROTOCOL_VERSION.to_string(),
@@ -536,10 +554,10 @@ impl Server {
                     },
                     None => None,
                 };
-                
+
                 // Get cursor from parameters
                 let cursor = params.and_then(|p| p.cursor);
-                
+
                 // Get resources from manager with pagination
                 let (resources, next_cursor) = self.resource_manager.list_resources(cursor).await;
 
@@ -610,7 +628,11 @@ impl Server {
                 };
 
                 // Read resource
-                match self.resource_manager.get_resource_content(&params.uri).await {
+                match self
+                    .resource_manager
+                    .get_resource_content(&params.uri)
+                    .await
+                {
                     Ok(contents) => {
                         // Send response
                         self.transport
@@ -694,7 +716,11 @@ impl Server {
 
                 // Subscribe to resource
                 let client_id = id.to_string(); // Use request ID as client ID for simplicity
-                match self.resource_manager.subscribe(&client_id, &params.uri).await {
+                match self
+                    .resource_manager
+                    .subscribe(&client_id, &params.uri)
+                    .await
+                {
                     Ok(_) => {
                         // Send success response
                         self.transport
@@ -737,12 +763,20 @@ impl Server {
                     methods::TOOLS_CALL => self.handle_tools_call(message).await?,
                     methods::RESOURCES_LIST => self.handle_resources_list(message).await?,
                     methods::RESOURCES_READ => self.handle_resources_read(message).await?,
-                    methods::RESOURCES_SUBSCRIBE => self.handle_resources_subscribe(message).await?,
-                    methods::RESOURCES_UNSUBSCRIBE => self.handle_resources_unsubscribe(message).await?,
-                    methods::RESOURCES_TEMPLATES_LIST => self.handle_resources_templates_list(message).await?,
+                    methods::RESOURCES_SUBSCRIBE => {
+                        self.handle_resources_subscribe(message).await?
+                    }
+                    methods::RESOURCES_UNSUBSCRIBE => {
+                        self.handle_resources_unsubscribe(message).await?
+                    }
+                    methods::RESOURCES_TEMPLATES_LIST => {
+                        self.handle_resources_templates_list(message).await?
+                    }
                     methods::PROMPTS_LIST => self.handle_prompts_list(message).await?,
                     methods::PROMPTS_GET => self.handle_prompts_get(message).await?,
-                    methods::COMPLETION_COMPLETE => self.handle_completion_complete(message).await?,
+                    methods::COMPLETION_COMPLETE => {
+                        self.handle_completion_complete(message).await?
+                    }
                     _ => {
                         if let JsonRpcMessage::Request { id, .. } = message {
                             // Method not found
@@ -784,7 +818,7 @@ impl Server {
         // Set up resource update listener
         let resource_update_rx = self.resource_manager.subscribe_to_updates();
         let resource_transport = self.transport.box_clone();
-        
+
         // Spawn a task to handle resource updates
         tokio::spawn(async move {
             let mut update_rx = resource_update_rx;
@@ -798,11 +832,11 @@ impl Server {
                     .await;
             }
         });
-        
+
         // Set up prompt update listener
         let prompt_update_rx = self.prompt_manager.subscribe_to_updates();
         let prompt_transport = self.transport.box_clone();
-        
+
         // Spawn a task to handle prompt updates
         tokio::spawn(async move {
             let mut update_rx = prompt_update_rx;
@@ -843,17 +877,17 @@ impl Server {
     pub fn resource_manager(&self) -> &Arc<ResourceManager> {
         &self.resource_manager
     }
-    
+
     /// Get a reference to the prompt manager
     pub fn prompt_manager(&self) -> &Arc<PromptManager> {
         &self.prompt_manager
     }
-    
+
     /// Get a reference to the transport
     pub(crate) fn transport(&self) -> &Box<dyn Transport> {
         &self.transport
     }
-    
+
     /// Get the server state
     pub(crate) fn state(&self) -> &Arc<AtomicU8> {
         &self.state

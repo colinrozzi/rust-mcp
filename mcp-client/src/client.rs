@@ -6,12 +6,12 @@ use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex, RwLock};
 
 use mcp_protocol::{
-    constants::{methods, error_codes, PROTOCOL_VERSION},
-    messages::{InitializeParams, InitializeResult, JsonRpcMessage, ClientCapabilities},
+    constants::{error_codes, methods, PROTOCOL_VERSION},
+    messages::{ClientCapabilities, InitializeParams, InitializeResult, JsonRpcMessage},
     types::{
-        tool::{ToolCallParams, ToolCallResult, ToolsListResult},
-        sampling::{CreateMessageParams, CreateMessageResult},
         completion::{CompleteRequest, CompleteResponse},
+        sampling::{CreateMessageParams, CreateMessageResult},
+        tool::{ToolCallParams, ToolCallResult, ToolsListResult},
         ClientInfo,
     },
 };
@@ -50,7 +50,7 @@ impl ClientBuilder {
             sampling_enabled: false,
         }
     }
-    
+
     /// Enable sampling capability
     pub fn with_sampling(mut self) -> Self {
         self.sampling_enabled = true;
@@ -68,7 +68,7 @@ impl ClientBuilder {
         let transport = self
             .transport
             .ok_or_else(|| anyhow!("Transport is required"))?;
-            
+
         // Create capabilities
         let capabilities = if self.sampling_enabled {
             let mut caps = ClientCapabilities::default();
@@ -94,7 +94,8 @@ impl ClientBuilder {
 }
 
 /// Type for sampling callback function
-pub type SamplingCallback = Box<dyn Fn(CreateMessageParams) -> Result<CreateMessageResult> + Send + Sync>;
+pub type SamplingCallback =
+    Box<dyn Fn(CreateMessageParams) -> Result<CreateMessageResult> + Send + Sync>;
 
 /// MCP client
 pub struct Client {
@@ -221,9 +222,11 @@ impl Client {
             _ => Err(anyhow!("Invalid response type")),
         }
     }
-    
+
     /// List available resource templates
-    pub async fn list_resource_templates(&self) -> Result<mcp_protocol::types::resource::ResourceTemplatesListResult> {
+    pub async fn list_resource_templates(
+        &self,
+    ) -> Result<mcp_protocol::types::resource::ResourceTemplatesListResult> {
         // Check if we're initialized
         {
             let state = self.state.read().await;
@@ -249,7 +252,8 @@ impl Client {
                 }
 
                 if let Some(result) = result {
-                    let result: mcp_protocol::types::resource::ResourceTemplatesListResult = serde_json::from_value(result)?;
+                    let result: mcp_protocol::types::resource::ResourceTemplatesListResult =
+                        serde_json::from_value(result)?;
                     return Ok(result);
                 }
 
@@ -258,7 +262,7 @@ impl Client {
             _ => Err(anyhow!("Invalid response type")),
         }
     }
-    
+
     /// Get completion suggestions for a resource or prompt parameter
     pub async fn complete(&self, request: CompleteRequest) -> Result<CompleteResponse> {
         // Check if we're initialized
@@ -364,7 +368,7 @@ impl Client {
 
         Ok(())
     }
-    
+
     /// Refresh the list of available prompts
     pub async fn refresh_prompts(&self) -> Result<serde_json::Value> {
         // Check if we're initialized
@@ -374,13 +378,13 @@ impl Client {
                 return Err(anyhow!("Client not initialized"));
             }
         }
-        
+
         // Send prompts/list request
         let id = self.next_request_id().await?;
         let response = self
             .send_request(methods::PROMPTS_LIST, None, id.to_string())
             .await?;
-        
+
         match response {
             JsonRpcMessage::Response { result, error, .. } => {
                 if let Some(error) = error {
@@ -390,11 +394,11 @@ impl Client {
                         error.code
                     ));
                 }
-                
+
                 if let Some(result) = result {
                     return Ok(result);
                 }
-                
+
                 Err(anyhow!("Invalid list prompts response"))
             }
             _ => Err(anyhow!("Invalid response type")),
@@ -449,13 +453,13 @@ impl Client {
         if !self.sampling_enabled {
             return Err(anyhow!("Sampling is not enabled"));
         }
-        
+
         let mut sampling_callback = self.sampling_callback.write().await;
         *sampling_callback = Some(callback);
-        
+
         Ok(())
     }
-    
+
     /// Handle sampling createMessage request
     async fn handle_sampling_create_message(&self, message: JsonRpcMessage) -> Result<()> {
         match message {
@@ -470,11 +474,10 @@ impl Client {
                             "Sampling is not enabled",
                             None,
                         ))
-                        .await?
-                    ;
+                        .await?;
                     return Ok(());
                 }
-                
+
                 // Parse parameters
                 let params: CreateMessageParams = match params {
                     Some(params) => match serde_json::from_value(params) {
@@ -488,8 +491,7 @@ impl Client {
                                     &format!("Invalid sampling parameters: {}", err),
                                     None,
                                 ))
-                                .await?
-                            ;
+                                .await?;
                             return Ok(());
                         }
                     },
@@ -502,12 +504,11 @@ impl Client {
                                 "Missing sampling parameters",
                                 None,
                             ))
-                            .await?
-                        ;
+                            .await?;
                         return Ok(());
                     }
                 };
-                
+
                 // Get the callback
                 let callback_result = {
                     let callback = self.sampling_callback.read().await;
@@ -517,7 +518,7 @@ impl Client {
                         Err(anyhow!("No sampling callback registered"))
                     }
                 };
-                
+
                 // Check if we have a callback
                 if let Err(_) = callback_result {
                     // Send error response
@@ -528,11 +529,10 @@ impl Client {
                             "No sampling callback registered",
                             None,
                         ))
-                        .await?
-                    ;
+                        .await?;
                     return Ok(());
                 }
-                
+
                 // Call the callback
                 // Get a lock on the callback to invoke it
                 let result = {
@@ -545,14 +545,13 @@ impl Client {
                         Err(anyhow!("No sampling callback registered"))
                     }
                 };
-                
+
                 match result {
                     Ok(result) => {
                         // Send response
                         self.transport
                             .send(JsonRpcMessage::response(id, json!(result)))
-                            .await?
-                        ;
+                            .await?;
                     }
                     Err(err) => {
                         // Send error response
@@ -563,17 +562,18 @@ impl Client {
                                 &format!("Sampling error: {}", err),
                                 None,
                             ))
-                            .await?
-                        ;
+                            .await?;
                     }
                 }
-                
+
                 Ok(())
             }
-            _ => Err(anyhow!("Expected request message for sampling/createMessage")),
+            _ => Err(anyhow!(
+                "Expected request message for sampling/createMessage"
+            )),
         }
     }
-    
+
     /// Handle a received message
     pub async fn handle_message(&self, message: JsonRpcMessage) -> Result<()> {
         match message.clone() {
@@ -608,21 +608,24 @@ impl Client {
                     methods::PROMPTS_LIST_CHANGED => {
                         // Emit a debug message about the change
                         tracing::debug!("Received notification: prompts list changed");
-                        
+
                         // We could trigger a refresh of the prompts list here
                         // but we'll skip it for now to avoid complexity with clones
                         Ok(())
-                    },
+                    }
                     // Handle resource updated notification
                     methods::RESOURCES_UPDATED => {
                         // Extract the resource URI if available
                         if let Some(params) = params {
                             if let Some(uri) = params.get("uri").and_then(|u| u.as_str()) {
-                                tracing::debug!("Received notification: resource updated - URI: {}", uri);
+                                tracing::debug!(
+                                    "Received notification: resource updated - URI: {}",
+                                    uri
+                                );
                             }
                         }
                         Ok(())
-                    },
+                    }
                     // Add other handlers for specific notifications here
                     _ => {
                         tracing::debug!("Unhandled notification: {}", method);
@@ -630,17 +633,15 @@ impl Client {
                     }
                 }
             }
-            JsonRpcMessage::Request { method, .. } => {
-                match method.as_str() {
-                    methods::SAMPLING_CREATE_MESSAGE => {
-                        self.handle_sampling_create_message(message).await
-                    },
-                    _ => {
-                        tracing::debug!("Unhandled server request: {}", method);
-                        Ok(())
-                    }
+            JsonRpcMessage::Request { method, .. } => match method.as_str() {
+                methods::SAMPLING_CREATE_MESSAGE => {
+                    self.handle_sampling_create_message(message).await
                 }
-            }
+                _ => {
+                    tracing::debug!("Unhandled server request: {}", method);
+                    Ok(())
+                }
+            },
         }
     }
 }

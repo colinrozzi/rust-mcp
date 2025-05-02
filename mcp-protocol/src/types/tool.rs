@@ -6,13 +6,13 @@ use std::collections::HashMap;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Tool {
     pub name: String,
-    
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
-    
-    #[serde(rename = "inputSchema")]
+
+    #[serde(rename = "input_schema")]
     pub input_schema: serde_json::Value,
-    
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub annotations: Option<HashMap<String, serde_json::Value>>,
 }
@@ -21,7 +21,7 @@ pub struct Tool {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ToolCallParams {
     pub name: String,
-    
+
     pub arguments: serde_json::Value,
 }
 
@@ -31,13 +31,21 @@ pub struct ToolCallParams {
 pub enum ToolContent {
     #[serde(rename = "text")]
     Text { text: String },
-    
+
     #[serde(rename = "image")]
-    Image { data: String, #[serde(rename = "mimeType")] mime_type: String },
-    
+    Image {
+        data: String,
+        #[serde(rename = "mimeType")]
+        mime_type: String,
+    },
+
     #[serde(rename = "audio")]
-    Audio { data: String, #[serde(rename = "mimeType")] mime_type: String },
-    
+    Audio {
+        data: String,
+        #[serde(rename = "mimeType")]
+        mime_type: String,
+    },
+
     #[serde(rename = "resource")]
     Resource { resource: serde_json::Value },
 }
@@ -46,7 +54,7 @@ pub enum ToolContent {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ToolCallResult {
     pub content: Vec<ToolContent>,
-    
+
     #[serde(rename = "isError")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub is_error: Option<bool>,
@@ -63,7 +71,7 @@ pub struct ToolsListParams {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ToolsListResult {
     pub tools: Vec<Tool>,
-    
+
     #[serde(rename = "nextCursor")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub next_cursor: Option<String>,

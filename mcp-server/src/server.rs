@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::Arc;
 use tokio::sync::mpsc;
-use tracing::{debug, error};
+use tracing::debug;
 
 use mcp_protocol::{
     constants::{error_codes, methods, PROTOCOL_VERSION},

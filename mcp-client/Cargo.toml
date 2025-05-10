@@ -1,12 +1,12 @@
 [package]
-name = "mcp-client"
+name = "modelcontextprotocol-client"
 version = "0.1.0"
 edition = "2021"
 description = "Client implementation for the Model Context Protocol (MCP)"
 license = "MIT"
 
 [dependencies]
-mcp-protocol = { path = "../mcp-protocol" }
+mcp-protocol = "0.2.1"
 serde = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true }

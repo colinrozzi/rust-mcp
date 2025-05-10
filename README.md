@@ -4,10 +4,7 @@ A modular Rust implementation of the Model Context Protocol (MCP), which enables
 
 ## Protocol Specification
 
-This implementation follows the MCP specification, which can be found at:
-
-- Local path: `~/work/mcp-servers/modelcontextprotocol/docs/specification`
-- Current implemented version: `~/work/mcp-servers/modelcontextprotocol/docs/specification/2024-11-05`
+This implementation follows the MCP specification, which can be found at [https://modelcontextprotocol.io/]
 
 > **Note**: This implementation is currently targeting the 2024-11-05 version of the specification. We plan to implement the newer 2025-03-26 specification in the future, but the inspector currently only supports the 2024 version. All code is designed with forward compatibility in mind.
 

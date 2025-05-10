@@ -78,8 +78,8 @@ name = "completion-client"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "mcp-client",
- "mcp-protocol",
+ "mcp-protocol 0.2.2",
+ "modelcontextprotocol-client",
  "serde",
  "serde_json",
  "tokio",
@@ -92,8 +92,8 @@ name = "completion-server"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "mcp-protocol",
- "mcp-server",
+ "mcp-protocol 0.2.2",
+ "modelcontextprotocol-server",
  "serde",
  "serde_json",
  "tokio",
@@ -201,8 +201,8 @@ name = "hello-world"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "mcp-protocol",
- "mcp-server",
+ "mcp-protocol 0.2.2",
+ "modelcontextprotocol-server",
  "serde",
  "serde_json",
  "tokio",
@@ -245,40 +245,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13dc2df351e3202783a1fe0d44375f7295ffb4049267b0f3018346dc122a1d94"
 
 [[package]]
-name = "mcp-client"
-version = "0.1.0"
+name = "mcp-protocol"
+version = "0.2.2"
 dependencies = [
- "anyhow",
- "async-trait",
- "futures",
- "mcp-protocol",
  "serde",
  "serde_json",
- "tokio",
- "tracing",
 ]
 
 [[package]]
 name = "mcp-protocol"
-version = "0.2.0"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "401d90c3c83602545faeedf33489747b48038a96268444f3f36c442a0d412869"
 dependencies = [
  "serde",
  "serde_json",
-]
-
-[[package]]
-name = "mcp-server"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "futures",
- "mcp-protocol",
- "serde",
- "serde_json",
- "thiserror",
- "tokio",
- "tracing",
 ]
 
 [[package]]
@@ -305,6 +286,35 @@ dependencies = [
  "libc",
  "wasi",
  "windows-sys",
+]
+
+[[package]]
+name = "modelcontextprotocol-client"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "futures",
+ "mcp-protocol 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "modelcontextprotocol-server"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "futures",
+ "mcp-protocol 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]
@@ -387,9 +397,9 @@ name = "prompt-client"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "mcp-client",
- "mcp-protocol",
- "mcp-server",
+ "mcp-protocol 0.2.2",
+ "modelcontextprotocol-client",
+ "modelcontextprotocol-server",
  "serde_json",
  "tokio",
  "tracing",
@@ -401,9 +411,9 @@ name = "prompt-server"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "mcp-client",
- "mcp-protocol",
- "mcp-server",
+ "mcp-protocol 0.2.2",
+ "modelcontextprotocol-client",
+ "modelcontextprotocol-server",
  "serde_json",
  "tokio",
  "tracing",
@@ -433,8 +443,8 @@ name = "resource-server"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "mcp-protocol",
- "mcp-server",
+ "mcp-protocol 0.2.2",
+ "modelcontextprotocol-server",
  "serde_json",
  "tokio",
  "tracing",
@@ -460,8 +470,8 @@ dependencies = [
  "anyhow",
  "async-trait",
  "futures",
- "mcp-client",
- "mcp-protocol",
+ "mcp-protocol 0.2.2",
+ "modelcontextprotocol-client",
  "serde_json",
  "tokio",
  "tracing",
@@ -475,8 +485,8 @@ dependencies = [
  "anyhow",
  "async-trait",
  "futures",
- "mcp-protocol",
- "mcp-server",
+ "mcp-protocol 0.2.2",
+ "modelcontextprotocol-server",
  "serde_json",
  "tokio",
  "tracing",
@@ -544,8 +554,8 @@ name = "simple-client"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "mcp-client",
- "mcp-protocol",
+ "mcp-protocol 0.2.2",
+ "modelcontextprotocol-client",
  "serde",
  "serde_json",
  "tokio",
@@ -594,8 +604,8 @@ name = "template-client"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "mcp-client",
- "mcp-protocol",
+ "mcp-protocol 0.2.2",
+ "modelcontextprotocol-client",
  "serde_json",
  "tokio",
  "tracing",
@@ -607,8 +617,8 @@ name = "template-server"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "mcp-protocol",
- "mcp-server",
+ "mcp-protocol 0.2.2",
+ "modelcontextprotocol-server",
  "serde_json",
  "tokio",
  "tracing",

@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-mcp-client = { path = "../../mcp-client" }
+modelcontextprotocol-client = { path = "../../mcp-client" }
 mcp-protocol = { path = "../../mcp-protocol" }
 anyhow = { workspace = true }
 tokio = { workspace = true }

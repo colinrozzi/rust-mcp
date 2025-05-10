@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 mcp-protocol = { path = "../../mcp-protocol" }
-mcp-client = { path = "../../mcp-client" }
+modelcontextprotocol-client = { path = "../../mcp-client" }
 tokio = { workspace = true }
 anyhow = { workspace = true }
 serde_json = { workspace = true }

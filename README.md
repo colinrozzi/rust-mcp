@@ -141,9 +141,9 @@ cargo run --package simple-client
 
 ```toml
 [dependencies]
-mcp-protocol = { git = "https://github.com/colinrozzi/rust-mcp" }
-mcp-client = { git = "https://github.com/colinrozzi/rust-mcp" }
-mcp-server = { git = "https://github.com/colinrozzi/rust-mcp" }
+mcp-protocol = "0.1.0"
+modelcontextprotocol-client = "0.1.0"
+modelcontextprotocol-server = "0.1.0"
 ```
 
 2. Build your MCP server or client using the provided builder patterns.

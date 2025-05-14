@@ -11,3 +11,5 @@ pub mod sampling;
 
 pub use server::{Server, ServerBuilder};
 pub use transport::Transport;
+
+pub use mcp_protocol;

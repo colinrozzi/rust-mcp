@@ -78,7 +78,6 @@ name = "completion-client"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "mcp-protocol 0.2.2",
  "modelcontextprotocol-client",
  "serde",
  "serde_json",
@@ -92,7 +91,6 @@ name = "completion-server"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "mcp-protocol 0.2.2",
  "modelcontextprotocol-server",
  "serde",
  "serde_json",
@@ -201,7 +199,6 @@ name = "hello-world"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "mcp-protocol 0.2.2",
  "modelcontextprotocol-server",
  "serde",
  "serde_json",
@@ -397,9 +394,7 @@ name = "prompt-client"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "mcp-protocol 0.2.2",
  "modelcontextprotocol-client",
- "modelcontextprotocol-server",
  "serde_json",
  "tokio",
  "tracing",
@@ -411,8 +406,6 @@ name = "prompt-server"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "mcp-protocol 0.2.2",
- "modelcontextprotocol-client",
  "modelcontextprotocol-server",
  "serde_json",
  "tokio",
@@ -443,7 +436,6 @@ name = "resource-server"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "mcp-protocol 0.2.2",
  "modelcontextprotocol-server",
  "serde_json",
  "tokio",
@@ -470,7 +462,6 @@ dependencies = [
  "anyhow",
  "async-trait",
  "futures",
- "mcp-protocol 0.2.2",
  "modelcontextprotocol-client",
  "serde_json",
  "tokio",
@@ -485,7 +476,6 @@ dependencies = [
  "anyhow",
  "async-trait",
  "futures",
- "mcp-protocol 0.2.2",
  "modelcontextprotocol-server",
  "serde_json",
  "tokio",
@@ -554,7 +544,6 @@ name = "simple-client"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "mcp-protocol 0.2.2",
  "modelcontextprotocol-client",
  "serde",
  "serde_json",
@@ -604,7 +593,6 @@ name = "template-client"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "mcp-protocol 0.2.2",
  "modelcontextprotocol-client",
  "serde_json",
  "tokio",
@@ -617,7 +605,6 @@ name = "template-server"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "mcp-protocol 0.2.2",
  "modelcontextprotocol-server",
  "serde_json",
  "tokio",

@@ -1,13 +1,13 @@
 use anyhow::Result;
-use mcp_protocol::types::{
-    resource::{ResourceContent},
+use modelcontextprotocol_server::mcp_protocol::types::{
+    resource::ResourceContent,
     tool::{ToolCallResult, ToolContent},
 };
-use mcp_server::{ServerBuilder, transport::StdioTransport};
+use modelcontextprotocol_server::{transport::StdioTransport, ServerBuilder};
 use serde_json::json;
 use std::fs::OpenOptions;
 use std::io;
-use tracing::{info, debug, Level};
+use tracing::{debug, info, Level};
 use tracing_subscriber::fmt;
 
 const FILE_CONTENT: &str = r#"
@@ -43,23 +43,25 @@ async fn main() -> Result<()> {
     let subscriber = fmt::Subscriber::builder()
         .with_max_level(Level::DEBUG)
         .with_writer(move || -> Box<dyn io::Write> {
-            Box::new(io::BufWriter::new(OpenOptions::new()
-                .create(true)
-                .append(true)
-                .open("resource-server.log")
-                .unwrap()))
+            Box::new(io::BufWriter::new(
+                OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open("resource-server.log")
+                    .unwrap(),
+            ))
         })
         .with_ansi(true)
         .finish();
     tracing::subscriber::set_global_default(subscriber)
         .expect("Failed to set default tracing subscriber");
-    
+
     debug!("Logging initialized");
-    
+
     info!("Starting resource-server MCP server");
-    
+
     debug!("Initializing server");
-    
+
     // Create server with stdio transport
     let server = ServerBuilder::new("resource-server", "0.1.0")
         .with_transport(StdioTransport::new())
@@ -77,7 +79,7 @@ async fn main() -> Result<()> {
                     text: Some(FILE_CONTENT.to_string()),
                     blob: None,
                 }])
-            }
+            },
         )
         // Add another resource - code file
         .with_resource(
@@ -93,7 +95,7 @@ async fn main() -> Result<()> {
                     text: Some(CODE_CONTENT.to_string()),
                     blob: None,
                 }])
-            }
+            },
         )
         // Add a tool that uses resources
         .with_tool(
@@ -111,40 +113,36 @@ async fn main() -> Result<()> {
             }),
             |args| {
                 debug!("get_file_contents tool called with args: {:?}", args);
-                
-                let path = args.get("path")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("");
-                
+
+                let path = args.get("path").and_then(|v| v.as_str()).unwrap_or("");
+
                 debug!("Fetching file: {}", path);
-                
+
                 let content = match path {
                     "readme.md" => FILE_CONTENT,
                     "main.rs" => CODE_CONTENT,
                     _ => "File not found",
                 };
-                
-                let content = vec![
-                    ToolContent::Text {
-                        text: format!("File contents:\n\n{}", content)
-                    }
-                ];
-                
+
+                let content = vec![ToolContent::Text {
+                    text: format!("File contents:\n\n{}", content),
+                }];
+
                 Ok(ToolCallResult {
                     content,
-                    is_error: Some(false)
+                    is_error: Some(false),
                 })
-            }
+            },
         )
         .build()?;
-    
+
     info!("Server initialized. Waiting for client connection...");
-    
+
     debug!("Starting server run loop");
     // Run server (blocks until shutdown)
     server.run().await?;
-    
+
     info!("Server shutting down");
-    
+
     Ok(())
 }

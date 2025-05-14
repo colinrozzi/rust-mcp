@@ -4,7 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-mcp-protocol = { path = "../../mcp-protocol" }
 modelcontextprotocol-server = { path = "../../mcp-server" }
 tokio = { version = "1.28", features = ["full"] }
 anyhow = "1.0"

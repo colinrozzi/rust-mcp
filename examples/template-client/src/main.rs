@@ -1,6 +1,8 @@
 use anyhow::Result;
-use mcp_client::{transport::StdioTransport, ClientBuilder};
-use mcp_protocol::types::{resource::ResourceTemplatesListParams, tool::ToolContent};
+use modelcontextprotocol_client::mcp_protocol::types::{
+    resource::ResourceTemplatesListParams, tool::ToolContent,
+};
+use modelcontextprotocol_client::{transport::StdioTransport, ClientBuilder};
 use serde_json::json;
 use std::fs::OpenOptions;
 use std::io;
@@ -66,7 +68,11 @@ async fn main() -> Result<()> {
         .send_request("resources/list", None, "list_resources".to_string())
         .await?;
 
-    if let mcp_protocol::messages::JsonRpcMessage::Response { result, .. } = resources_result {
+    if let modelcontextprotocol_client::mcp_protocol::messages::JsonRpcMessage::Response {
+        result,
+        ..
+    } = resources_result
+    {
         if let Some(result) = result {
             info!("Resources: {}", result);
         }
@@ -84,7 +90,11 @@ async fn main() -> Result<()> {
         )
         .await?;
 
-    if let mcp_protocol::messages::JsonRpcMessage::Response { result, .. } = templates_result {
+    if let modelcontextprotocol_client::mcp_protocol::messages::JsonRpcMessage::Response {
+        result,
+        ..
+    } = templates_result
+    {
         if let Some(result) = result {
             info!("Templates: {}", result);
         }
@@ -92,11 +102,11 @@ async fn main() -> Result<()> {
 
     // Get completions for a template parameter
     info!("Requesting completions for database parameter");
-    let completion_params = mcp_protocol::types::completion::CompletionCompleteParams {
-        r#ref: mcp_protocol::types::completion::CompletionReference::Resource {
+    let completion_params = modelcontextprotocol_client::mcp_protocol::types::completion::CompletionCompleteParams {
+        r#ref: modelcontextprotocol_client::mcp_protocol::types::completion::CompletionReference::Resource {
             uri: "db:///{database}/{table}/{id}".to_string(),
         },
-        argument: mcp_protocol::types::completion::CompletionArgument {
+        argument: modelcontextprotocol_client::mcp_protocol::types::completion::CompletionArgument {
             name: "database".to_string(),
             value: "".to_string(),
         },
@@ -110,7 +120,11 @@ async fn main() -> Result<()> {
         )
         .await?;
 
-    if let mcp_protocol::messages::JsonRpcMessage::Response { result, .. } = completion_result {
+    if let modelcontextprotocol_client::mcp_protocol::messages::JsonRpcMessage::Response {
+        result,
+        ..
+    } = completion_result
+    {
         if let Some(result) = result {
             info!("Completions: {}", result);
         }

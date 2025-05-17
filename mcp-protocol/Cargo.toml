@@ -1,6 +1,6 @@
 [package]
 name = "mcp-protocol"
-version = "0.2.4"
+version = "0.2.5"
 edition = "2021"
 description = "Protocol definitions for the Model Context Protocol (MCP)"
 license = "MIT"
@@ -8,7 +8,6 @@ repository = "https://github.com/colinrozzi/rust-mcp"
 
 [features]
 camel_case = []
-snake_case = []
 
 [dependencies]
 serde = { workspace = true }

@@ -11,7 +11,6 @@ pub struct Tool {
     pub description: Option<String>,
 
     #[cfg_attr(feature = "camel_case", serde(rename = "inputSchema"))]
-    #[cfg_attr(feature = "snake_case", serde(rename = "input_schema"))]
     pub input_schema: serde_json::Value,
 
     #[serde(skip_serializing_if = "Option::is_none")]

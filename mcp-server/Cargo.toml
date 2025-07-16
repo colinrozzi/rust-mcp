@@ -1,6 +1,6 @@
 [package]
 name = "modelcontextprotocol-server"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2021"
 description = "Server implementation for the Model Context Protocol (MCP)"
 license = "MIT"
